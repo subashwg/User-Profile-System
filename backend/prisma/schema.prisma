@@ -15,6 +15,13 @@ enum LoginMethodType {
   @@map("login_method_type")
 }
 
+enum TokenPurpose {
+  verify_email
+  reset_password
+
+  @@map("token_purpose")
+}
+
 model User {
   id                   String        @id @default(uuid())
   email                String        @unique
@@ -28,6 +35,7 @@ model User {
   deleted_at           DateTime?     @map("deleted_at")
   login_methods        LoginMethod[]
   sessions             Session[]
+  email_tokens         EmailToken[]
 
   @@map("users")
 }
@@ -55,4 +63,18 @@ model Session {
   created_at DateTime @default(now()) @map("created_at")
 
   @@map("sessions")
+}
+
+model EmailToken {
+  id         String       @id @default(uuid())
+  user_id    String       @map("user_id")
+  user       User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  purpose    TokenPurpose
+  token_hash String       @map("token_hash")
+  expires_at DateTime     @map("expires_at")
+  used_at    DateTime?    @map("used_at")
+  created_at DateTime     @default(now()) @map("created_at")
+
+  @@index([token_hash])
+  @@map("email_tokens")
 }

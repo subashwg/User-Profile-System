@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { MailService } from '../mail/mail.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { HealthController } from './health.controller.js';
 import { HealthService } from './health.service.js';
@@ -17,6 +18,14 @@ describe('HealthController', () => {
           provide: PrismaService,
           useValue: {
             isHealthy: vi.fn().mockResolvedValue(true),
+            user: { count: vi.fn().mockResolvedValue(0) },
+            loginMethod: { count: vi.fn().mockResolvedValue(0) },
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            latestEmails: [],
           },
         },
       ],

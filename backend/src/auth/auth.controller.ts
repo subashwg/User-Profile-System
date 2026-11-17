@@ -15,6 +15,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { SessionAuthGuard } from './guards/session-auth.guard.js';
 
 interface RequestWithAuth extends Request {
@@ -88,6 +89,19 @@ export class AuthController {
   async getMe(@Req() req: RequestWithAuth) {
     const user = await this.authService.getMe(req.user.id);
     return { user };
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  async resendVerification(@Req() req: RequestWithAuth) {
+    return this.authService.resendVerification(req.user.id);
   }
 
   private setSessionCookie(res: Response, sessionId: string, expires: Date) {

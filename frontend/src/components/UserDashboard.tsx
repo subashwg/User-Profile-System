@@ -17,10 +17,13 @@ interface UserDashboardProps {
   user: User;
   apiUrl: string;
   onLogout: () => void;
+  onRefresh: () => void;
 }
 
-export default function UserDashboard({ user, apiUrl, onLogout }: UserDashboardProps) {
+export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: UserDashboardProps) {
   const [loggingOut, setLoggingOut] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -34,6 +37,27 @@ export default function UserDashboard({ user, apiUrl, onLogout }: UserDashboardP
       onLogout();
     } finally {
       setLoggingOut(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendStatus(null);
+    try {
+      const res = await fetch(`${apiUrl}/auth/resend-verification`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to resend verification link');
+      }
+      setResendStatus('Verification link sent! Check the dev mailbox below.');
+      onRefresh();
+    } catch (e) {
+      setResendStatus(`Error: ${(e as Error).message}`);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -54,13 +78,30 @@ export default function UserDashboard({ user, apiUrl, onLogout }: UserDashboardP
       </div>
 
       {!user.email_verified && (
-        <div className="alert alert-warning" style={{ marginTop: '16px' }}>
-          <span>✉️</span>
-          <div>
-            <strong>Verify your email address</strong>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem' }}>
-              Your account is unverified. Email verification links will be enabled in <strong>Step 4</strong>.
-            </p>
+        <div className="alert alert-warning" style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span>✉️</span>
+            <div>
+              <strong>Verify your email address</strong>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem' }}>
+                Your account is unverified. Click the link in your email or use the dev mailbox below.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+            <button
+              className="btn btn-secondary"
+              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+              onClick={handleResend}
+              disabled={resending}
+            >
+              {resending ? 'Sending...' : 'Resend verification link'}
+            </button>
+            {resendStatus && (
+              <span style={{ fontSize: '0.8rem', color: resendStatus.startsWith('Error') ? '#ef4444' : '#16a34a' }}>
+                {resendStatus}
+              </span>
+            )}
           </div>
         </div>
       )}

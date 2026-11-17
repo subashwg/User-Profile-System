@@ -10,6 +10,11 @@ export class HealthController {
     return this.healthService.check();
   }
 
+  @Get('dev-mailbox')
+  getDevMailbox() {
+    return this.healthService.getDevMailbox();
+  }
+
   @Post('smoke-test')
   async runSmokeTest() {
     return this.healthService.runSmokeTest();

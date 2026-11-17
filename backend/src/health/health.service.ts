@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { MailService } from '../mail/mail.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async check() {
     const isDbConnected = await this.prisma.isHealthy();
@@ -28,6 +32,10 @@ export class HealthService {
       database: isDbConnected ? 'connected' : 'disconnected',
       stats,
     };
+  }
+
+  getDevMailbox() {
+    return this.mailService.latestEmails;
   }
 
   async runSmokeTest() {
