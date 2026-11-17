@@ -20,6 +20,7 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
+import { AppleService } from './apple/apple.service.js';
 import { GoogleService } from './google/google.service.js';
 import { SessionAuthGuard } from './guards/session-auth.guard.js';
 
@@ -36,6 +37,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly googleService: GoogleService,
+    private readonly appleService: AppleService,
   ) {
     this.isProduction = this.configService.get<string>('NODE_ENV') === 'production';
   }
@@ -180,6 +182,78 @@ export class AuthController {
     try {
       const userAgent = req.headers['user-agent'] as string | undefined;
       const result = await this.authService.loginWithGoogle(code, userAgent, ip);
+      this.setSessionCookie(res, result.sessionId, result.expiresAt);
+      return res.redirect(frontendUrl);
+    } catch (err) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent((err as Error).message)}`,
+      );
+    }
+  }
+
+  @Get('apple')
+  async appleAuth(@Res() res: Response) {
+    const state = randomBytes(32).toString('hex');
+
+    res.cookie('oauth_apple_state', state, {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      path: '/',
+    });
+
+    const authUrl = this.appleService.generateAuthUrl(state);
+    return res.redirect(authUrl);
+  }
+
+  @Post('apple/callback')
+  async appleCallback(
+    @Body() body: Record<string, any>,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Ip() ip: string,
+  ) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const savedState = req.cookies?.oauth_apple_state;
+
+    // Clear the OAuth state cookie
+    res.clearCookie('oauth_apple_state', {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    const state = body?.state;
+    const error = body?.error;
+    const idToken = body?.id_token;
+    const userPayload = body?.user;
+
+    if (error) {
+      return res.redirect(`${frontendUrl}?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!state || !savedState || state !== savedState) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent('Invalid OAuth state. Please try again.')}`,
+      );
+    }
+
+    if (!idToken) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent('Missing Apple ID token')}`,
+      );
+    }
+
+    try {
+      const userAgent = req.headers['user-agent'] as string | undefined;
+      const result = await this.authService.loginWithApple(
+        idToken,
+        userPayload,
+        userAgent,
+        ip,
+      );
       this.setSessionCookie(res, result.sessionId, result.expiresAt);
       return res.redirect(frontendUrl);
     } catch (err) {

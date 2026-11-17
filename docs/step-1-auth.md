@@ -200,7 +200,7 @@ Build in nine small releases, one at a time. Finish, test and commit each before
 - [x] 5. Forgot and reset password, ending old sessions after a reset
 - [x] 6. Onboarding: username check, complete-onboarding endpoint, resume-if-unfinished logic
 - [x] 7. Google login with the linking rule
-- [ ] 8. Apple login, including first-time name capture and relay emails
+- [x] 8. Apple login, including first-time name capture and relay emails
 - [ ] 9. Account settings (list and add login methods, change password), rate limiting pass, security checklist pass
 
 For each release, also write tests for the happy path and the main failure cases (wrong password, expired token, reused token, duplicate email, taken username).
@@ -212,7 +212,7 @@ Step 1 is finished when every item below is true and tested.
 - [x] A new user can sign up with email, verify it, and log in
 - [x] A user can reset a forgotten password and old sessions end
 - [x] A user can sign in with Google
-- [ ] A user can sign in with Apple
+- [x] A user can sign in with Apple
 - [x] Logging in by different methods with the same verified email does not create duplicate users
 - [x] A new user is taken through onboarding once and can choose a unique username
 - [x] Logout works and sessions expire

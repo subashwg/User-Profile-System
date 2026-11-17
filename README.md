@@ -113,6 +113,22 @@ The frontend starts at [http://localhost:5173](http://localhost:5173).
    GOOGLE_CALLBACK_URL="http://localhost:3000/auth/google/callback"
    ```
 
+#### Setting up Sign in with Apple
+1. Register an App ID and a Services ID on the [Apple Developer Portal](https://developer.apple.com/account/).
+2. Enable **Sign in with Apple** on the Services ID.
+3. Configure the domain and Return URL:
+   - **Domains**: your domain (or tunnel for local testing)
+   - **Return URLs**: `http://localhost:3000/auth/apple/callback`
+4. Generate a private key (`.p8`) for Sign in with Apple and record your **Key ID** and **Team ID**.
+5. Add the values to `backend/.env`:
+   ```env
+   APPLE_CLIENT_ID="your.service.id"
+   APPLE_TEAM_ID="your-team-id"
+   APPLE_KEY_ID="your-key-id"
+   APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+   APPLE_CALLBACK_URL="http://localhost:3000/auth/apple/callback"
+   ```
+
 ---
 
 ## Running Tests
