@@ -13,6 +13,12 @@ export default function LoginForm({ apiUrl, onSuccess, onSwitchToRegister }: Log
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Forgot Password state
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -38,6 +44,72 @@ export default function LoginForm({ apiUrl, onSuccess, onSwitchToRegister }: Log
       setLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotMessage(null);
+    try {
+      const res = await fetch(`${apiUrl}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      setForgotMessage(data.message || 'If this email exists, we sent a link');
+    } catch (err) {
+      setForgotMessage('If this email exists, we sent a link');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  if (isForgotMode) {
+    return (
+      <form className="auth-form" onSubmit={handleForgotPassword}>
+        <h2 className="form-title">Reset your password</h2>
+        <p className="form-subtitle">Enter your email and we will send you a reset link</p>
+
+        {forgotMessage && (
+          <div className="alert alert-info">
+            <span>✉️</span> {forgotMessage}
+          </div>
+        )}
+
+        <div className="form-group">
+          <label htmlFor="forgot-email">Email address</label>
+          <input
+            id="forgot-email"
+            type="email"
+            className="form-input"
+            placeholder="you@example.com"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
+
+        <button type="submit" className="btn btn-primary" disabled={forgotLoading}>
+          {forgotLoading ? 'Sending link...' : 'Send reset link'}
+        </button>
+
+        <p className="switch-auth-text">
+          Remember your password?{' '}
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              setIsForgotMode(false);
+              setForgotMessage(null);
+            }}
+          >
+            Back to log in
+          </button>
+        </p>
+      </form>
+    );
+  }
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
@@ -67,9 +139,17 @@ export default function LoginForm({ apiUrl, onSuccess, onSwitchToRegister }: Log
       <div className="form-group">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <label htmlFor="login-password">Password</label>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text)', cursor: 'default' }} title="Coming in Step 5">
+          <button
+            type="button"
+            className="link-btn"
+            style={{ fontSize: '0.8rem' }}
+            onClick={() => {
+              setForgotEmail(email);
+              setIsForgotMode(true);
+            }}
+          >
             Forgot password?
-          </span>
+          </button>
         </div>
         <div className="password-input-wrapper">
           <input

@@ -258,6 +258,87 @@ export class AuthService {
     return { message: 'Verification link sent' };
   }
 
+  async forgotPassword(email: string) {
+    const normalizedEmail = email?.trim().toLowerCase();
+    const genericResponse = { message: 'If this email exists, we sent a link' };
+
+    if (!normalizedEmail) {
+      return genericResponse;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user || user.deleted_at) {
+      return genericResponse;
+    }
+
+    // Invalidate prior unused reset_password tokens for this user
+    await this.prisma.emailToken.updateMany({
+      where: {
+        user_id: user.id,
+        purpose: 'reset_password',
+        used_at: null,
+      },
+      data: {
+        used_at: new Date(),
+      },
+    });
+
+    // Create 30-minute password reset token
+    const rawToken = await this.createEmailToken(user.id, 'reset_password', 30 * 60 * 1000);
+    await this.mailService.sendPasswordResetEmail(user.email, rawToken);
+
+    return genericResponse;
+  }
+
+  async resetPassword(rawToken: string, newPassword: string) {
+    if (!rawToken || typeof rawToken !== 'string') {
+      throw new BadRequestException('Invalid or missing password reset token');
+    }
+
+    const tokenHash = this.hashToken(rawToken);
+
+    const emailToken = await this.prisma.emailToken.findFirst({
+      where: {
+        token_hash: tokenHash,
+        purpose: 'reset_password',
+      },
+    });
+
+    if (!emailToken || emailToken.used_at !== null || emailToken.expires_at < new Date()) {
+      throw new BadRequestException('Invalid, expired, or already used password reset token');
+    }
+
+    // Hash new password with argon2
+    const passwordHash = await argon2.hash(newPassword);
+
+    await this.prisma.$transaction([
+      // 1. Mark token used
+      this.prisma.emailToken.update({
+        where: { id: emailToken.id },
+        data: { used_at: new Date() },
+      }),
+      // 2. Update password hash on email login method
+      this.prisma.loginMethod.updateMany({
+        where: {
+          user_id: emailToken.user_id,
+          type: 'email',
+        },
+        data: {
+          password_hash: passwordHash,
+        },
+      }),
+      // 3. End all existing sessions for that user
+      this.prisma.session.deleteMany({
+        where: { user_id: emailToken.user_id },
+      }),
+    ]);
+
+    return { message: 'Password has been reset successfully. Please log in with your new password.' };
+  }
+
   private async createSession(userId: string, userAgent?: string, ip?: string) {
     const sessionId = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + this.sessionDurationMs);

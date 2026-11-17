@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import LoginForm from './components/LoginForm.js';
 import RegisterForm from './components/RegisterForm.js';
+import ResetPasswordForm from './components/ResetPasswordForm.js';
 import UserDashboard from './components/UserDashboard.js';
 
 interface HealthData {
@@ -29,7 +30,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('register');
 
-  const [verificationNotice, setVerificationNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [devEmails, setDevEmails] = useState<DevEmail[]>([]);
 
   const [health, setHealth] = useState<HealthData | null>(null);
@@ -72,10 +74,11 @@ export default function App() {
       .catch(() => {});
   }, [apiUrl]);
 
-  // Handle URL verification token
+  // Handle URL tokens (verification or password reset)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const verifyToken = params.get('verify_token');
+    const paramResetToken = params.get('reset_token');
 
     if (verifyToken) {
       fetch(`${apiUrl}/auth/verify-email`, {
@@ -86,19 +89,21 @@ export default function App() {
         .then(async (res) => {
           const data = await res.json();
           if (res.ok) {
-            setVerificationNotice({ type: 'success', message: 'Email verified successfully! Your account is now confirmed.' });
+            setNotice({ type: 'success', message: 'Email verified successfully! Your account is now confirmed.' });
             checkSession();
           } else {
-            setVerificationNotice({ type: 'error', message: data.message || 'Verification link expired or invalid.' });
+            setNotice({ type: 'error', message: data.message || 'Verification link expired or invalid.' });
           }
         })
         .catch((err) => {
-          setVerificationNotice({ type: 'error', message: err.message });
+          setNotice({ type: 'error', message: err.message });
         })
         .finally(() => {
-          // Clean token from address bar
           window.history.replaceState({}, document.title, window.location.pathname);
         });
+    } else if (paramResetToken) {
+      setResetToken(paramResetToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [apiUrl, checkSession]);
 
@@ -134,14 +139,14 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        setVerificationNotice({ type: 'success', message: 'Email verified successfully!' });
+        setNotice({ type: 'success', message: 'Email verified successfully!' });
         checkSession();
         fetchDevMailbox();
       } else {
-        setVerificationNotice({ type: 'error', message: data.message });
+        setNotice({ type: 'error', message: data.message });
       }
     } catch (e) {
-      setVerificationNotice({ type: 'error', message: (e as Error).message });
+      setNotice({ type: 'error', message: (e as Error).message });
     }
   };
 
@@ -152,14 +157,14 @@ export default function App() {
         <p className="app-subtitle">Step 1: Auth &amp; Onboarding</p>
       </header>
 
-      {verificationNotice && (
-        <div className={`alert ${verificationNotice.type === 'success' ? 'alert-info' : 'alert-error'}`} style={{ marginBottom: '20px' }}>
-          <span>{verificationNotice.type === 'success' ? '✅' : '⚠️'}</span>
+      {notice && (
+        <div className={`alert ${notice.type === 'success' ? 'alert-info' : 'alert-error'}`} style={{ marginBottom: '20px' }}>
+          <span>{notice.type === 'success' ? '✅' : '⚠️'}</span>
           <div>
-            <strong>{verificationNotice.message}</strong>
+            <strong>{notice.message}</strong>
           </div>
           <button
-            onClick={() => setVerificationNotice(null)}
+            onClick={() => setNotice(null)}
             style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}
           >
             ✕
@@ -171,6 +176,24 @@ export default function App() {
         {authLoading ? (
           <div className="status-card" style={{ textAlign: 'center', padding: '40px' }}>
             <p>Checking authentication session...</p>
+          </div>
+        ) : resetToken ? (
+          <div className="auth-card-container">
+            <div className="auth-card-body">
+              <ResetPasswordForm
+                token={resetToken}
+                apiUrl={apiUrl}
+                onSuccess={() => {
+                  setResetToken(null);
+                  setAuthTab('login');
+                  setNotice({
+                    type: 'success',
+                    message: 'Password reset successfully! Please log in with your new password.',
+                  });
+                }}
+                onCancel={() => setResetToken(null)}
+              />
+            </div>
           </div>
         ) : currentUser ? (
           <UserDashboard
@@ -224,19 +247,29 @@ export default function App() {
               <strong style={{ color: 'var(--text-h)', fontSize: '0.95rem' }}>
                 📬 Local Dev Mailbox ({devEmails.length} sent)
               </strong>
-              <small style={{ color: 'var(--text)' }}>Step 4 Local Dev</small>
+              <small style={{ color: 'var(--text)' }}>Dev Mode Mailer</small>
             </div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
-              Latest email to <strong>{devEmails[0].to}</strong>: <em>{devEmails[0].subject}</em>
+              Latest to <strong>{devEmails[0].to}</strong>: <em>{devEmails[0].subject}</em>
             </div>
             <div style={{ marginTop: '10px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                className="btn btn-primary"
-                style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-                onClick={() => handleVerifyDirectly(devEmails[0].token)}
-              >
-                Verify Email Now (1-Click Test)
-              </button>
+              {devEmails[0].type === 'verify_email' ? (
+                <button
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={() => handleVerifyDirectly(devEmails[0].token)}
+                >
+                  Verify Email Now (1-Click Test)
+                </button>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={() => setResetToken(devEmails[0].token)}
+                >
+                  Open Reset Password Form (1-Click Test)
+                </button>
+              )}
               <span style={{ fontSize: '0.75rem', color: 'var(--text)' }}>
                 Token: <code>{devEmails[0].token.slice(0, 10)}...</code>
               </span>

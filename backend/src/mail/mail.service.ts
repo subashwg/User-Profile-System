@@ -86,6 +86,53 @@ export class MailService {
     return verificationLink;
   }
 
+  async sendPasswordResetEmail(to: string, rawToken: string): Promise<string> {
+    const resetLink = `${this.frontendUrl}/?reset_token=${rawToken}`;
+    const subject = 'Reset your password';
+
+    const record: SentEmailRecord = {
+      to,
+      subject,
+      link: resetLink,
+      token: rawToken,
+      type: 'reset_password',
+      sentAt: new Date(),
+    };
+
+    this.latestEmails.unshift(record);
+    if (this.latestEmails.length > 20) {
+      this.latestEmails.pop();
+    }
+
+    this.logger.log(`\n==================================================\n` +
+      `[PASSWORD RESET]\nTo: ${to}\nLink: ${resetLink}\n` +
+      `==================================================\n`);
+
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to,
+        subject,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>Reset your password</h2>
+            <p>You requested to reset your password. Click the link below to choose a new password. This link is valid for 30 minutes.</p>
+            <p style="margin: 24px 0;">
+              <a href="${resetLink}" style="background-color: #aa3bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Reset Password
+              </a>
+            </p>
+            <p style="color: #666; font-size: 14px;">If you didn't request this, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.warn(`SMTP delivery skipped/failed (dev fallback active): ${(error as Error).message}`);
+    }
+
+    return resetLink;
+  }
+
   getLatestEmail(to?: string): SentEmailRecord | undefined {
     if (!to) return this.latestEmails[0];
     return this.latestEmails.find((e) => e.to.toLowerCase() === to.toLowerCase());
