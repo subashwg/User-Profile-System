@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 
 interface HealthData {
   status: string;
   timestamp: string;
   uptime: number;
-  database: string;
+  database: 'connected' | 'disconnected' | string;
 }
 
 export default function App() {
@@ -15,14 +15,16 @@ export default function App() {
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  useEffect(() => {
+  const checkHealth = useCallback(() => {
+    setLoading(true);
     fetch(`${apiUrl}/health`)
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((data: HealthData) => {
         setHealth(data);
+        setError(null);
         setLoading(false);
       })
       .catch((err: Error) => {
@@ -31,28 +33,84 @@ export default function App() {
       });
   }, [apiUrl]);
 
-  return (
-    <div style={{ maxWidth: '640px', margin: '48px auto', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '0 16px' }}>
-      <h1>Portfolio Profile System</h1>
-      <p style={{ color: '#666' }}>Step 1: Auth &amp; Onboarding</p>
+  useEffect(() => {
+    checkHealth();
+    const interval = setInterval(checkHealth, 5000);
+    return () => clearInterval(interval);
+  }, [checkHealth]);
 
-      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginTop: '24px', backgroundColor: '#f8fafc' }}>
-        <h2 style={{ fontSize: '1.25rem', marginTop: 0 }}>System Health</h2>
-        {loading && <p>Checking backend health...</p>}
-        {error && (
-          <p style={{ color: '#dc2626' }}>
-            Backend API unreachable: {error} <br />
-            <small style={{ color: '#666' }}>Make sure the backend is running at {apiUrl}</small>
-          </p>
-        )}
-        {health && (
-          <div>
-            <p><strong>API Server:</strong> <span style={{ color: '#16a34a' }}>● {health.status.toUpperCase()}</span></p>
-            <p><strong>Database:</strong> <span style={{ color: health.database === 'connected' ? '#16a34a' : '#ea580c' }}>
-              ● {health.database.toUpperCase()}
-            </span></p>
-            <p><strong>Server Time:</strong> {new Date(health.timestamp).toLocaleString()}</p>
+  return (
+    <div className="app-container">
+      <div className="header-section">
+        <h1 className="app-title">Portfolio Profile System</h1>
+        <p className="app-subtitle">Step 1: Auth &amp; Onboarding</p>
+      </div>
+
+      <div className="status-card">
+        <div className="card-header">
+          <h2 className="card-title">System Status</h2>
+          <button className="refresh-btn" onClick={checkHealth} disabled={loading}>
+            {loading ? 'Checking...' : 'Refresh'}
+          </button>
+        </div>
+
+        {error ? (
+          <div className="info-box badge-error" style={{ display: 'block' }}>
+            <strong>Backend Unreachable:</strong> {error}
+            <div style={{ marginTop: '4px' }}>
+              Verify that the backend server is running on <code>{apiUrl}</code>.
+            </div>
           </div>
+        ) : health ? (
+          <div className="status-grid">
+            <div className="status-row">
+              <span className="status-label">Backend API</span>
+              <span className="badge badge-success">
+                <span className="dot dot-green"></span>
+                ONLINE (HTTP 200)
+              </span>
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">PostgreSQL Database</span>
+              {health.database === 'connected' ? (
+                <span className="badge badge-success">
+                  <span className="dot dot-green"></span>
+                  CONNECTED
+                </span>
+              ) : (
+                <span className="badge badge-warning">
+                  <span className="dot dot-orange"></span>
+                  DISCONNECTED
+                </span>
+              )}
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">Server Time</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-h)', fontFamily: 'var(--mono)' }}>
+                {new Date(health.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">Uptime</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-h)', fontFamily: 'var(--mono)' }}>
+                {Math.floor(health.uptime)} seconds
+              </span>
+            </div>
+
+            {health.database === 'disconnected' && (
+              <div className="info-box">
+                <strong>Database Not Connected</strong>
+                <div style={{ marginTop: '6px' }}>
+                  PostgreSQL is not responding on <code>localhost:5432</code>. Starting PostgreSQL will automatically switch the status to Connected.
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text)' }}>Loading status...</p>
         )}
       </div>
     </div>

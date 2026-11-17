@@ -4,6 +4,7 @@
   "private": true,
   "description": "Portfolio Profile System - Auth & Onboarding",
   "scripts": {
+    "start:db": "node backend/scripts/start-db.js",
     "start:backend": "npm --prefix backend run start:dev",
     "start:frontend": "npm --prefix frontend run dev",
     "build:backend": "npm --prefix backend run build",
