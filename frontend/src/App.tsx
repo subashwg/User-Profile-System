@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import LoginForm from './components/LoginForm.js';
+import OnboardingForm from './components/OnboardingForm.js';
 import RegisterForm from './components/RegisterForm.js';
 import ResetPasswordForm from './components/ResetPasswordForm.js';
 import UserDashboard from './components/UserDashboard.js';
@@ -196,15 +197,24 @@ export default function App() {
             </div>
           </div>
         ) : currentUser ? (
-          <UserDashboard
-            user={currentUser}
-            apiUrl={apiUrl}
-            onLogout={handleLogout}
-            onRefresh={() => {
-              checkSession();
-              fetchDevMailbox();
-            }}
-          />
+          !currentUser.onboarding_completed ? (
+            <OnboardingForm
+              user={currentUser}
+              apiUrl={apiUrl}
+              onSuccess={handleAuthSuccess}
+              onLogout={handleLogout}
+            />
+          ) : (
+            <UserDashboard
+              user={currentUser}
+              apiUrl={apiUrl}
+              onLogout={handleLogout}
+              onRefresh={() => {
+                checkSession();
+                fetchDevMailbox();
+              }}
+            />
+          )
         ) : (
           <div className="auth-card-container">
             <div className="auth-tabs">

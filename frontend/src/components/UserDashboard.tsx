@@ -122,8 +122,35 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
         <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: 'var(--text-h)' }}>Account Profile</h3>
 
         <div className="detail-row">
-          <span className="detail-label">User ID:</span>
-          <code className="detail-value">{user.id}</code>
+          <span className="detail-label">Display Name:</span>
+          <span className="detail-value" style={{ fontWeight: 600 }}>
+            {user.name || 'Not set'}
+          </span>
+        </div>
+
+        <div className="detail-row">
+          <span className="detail-label">Username / Public Link:</span>
+          <span className="detail-value">
+            {user.username ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <code style={{ color: 'var(--accent)', fontWeight: 600 }}>@{user.username}</code>
+                <span className="badge badge-success">Live (/@{user.username})</span>
+              </span>
+            ) : (
+              'Not set yet'
+            )}
+          </span>
+        </div>
+
+        <div className="detail-row">
+          <span className="detail-label">Onboarding Status:</span>
+          <span className="detail-value">
+            {user.onboarding_completed ? (
+              <span className="badge badge-success">✓ Completed</span>
+            ) : (
+              <span className="badge badge-warning">Pending</span>
+            )}
+          </span>
         </div>
 
         <div className="detail-row">
@@ -137,8 +164,8 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
         </div>
 
         <div className="detail-row">
-          <span className="detail-label">Username:</span>
-          <span className="detail-value">{user.username || 'Not set yet (Onboarding Step 6)'}</span>
+          <span className="detail-label">User ID:</span>
+          <code className="detail-value">{user.id}</code>
         </div>
 
         <div className="detail-row">

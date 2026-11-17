@@ -198,7 +198,7 @@ Build in nine small releases, one at a time. Finish, test and commit each before
 - [x] 3. Email sign-up, login, logout and GET /auth/me with sessions and password hashing
 - [x] 4. Email verification: token table, sending (dev inbox locally), verify and resend endpoints
 - [x] 5. Forgot and reset password, ending old sessions after a reset
-- [ ] 6. Onboarding: username check, complete-onboarding endpoint, resume-if-unfinished logic
+- [x] 6. Onboarding: username check, complete-onboarding endpoint, resume-if-unfinished logic
 - [ ] 7. Google login with the linking rule
 - [ ] 8. Apple login, including first-time name capture and relay emails
 - [ ] 9. Account settings (list and add login methods, change password), rate limiting pass, security checklist pass
