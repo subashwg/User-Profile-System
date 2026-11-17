@@ -96,6 +96,23 @@ cd frontend && npm run dev
 ```
 The frontend starts at [http://localhost:5173](http://localhost:5173).
 
+### 4. OAuth Configuration (Google & Apple)
+
+#### Setting up Google OAuth
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project (e.g. `Portfolio Profile`).
+3. Under **APIs & Services > OAuth consent screen**, set User Type to External, fill in your app details, and add the scopes `email`, `profile`, `openid`.
+4. Under **APIs & Services > Credentials**, click **Create Credentials > OAuth client ID**.
+5. Choose **Web application**:
+   - **Authorized JavaScript origins**: `http://localhost:3000`, `http://localhost:5173`
+   - **Authorized redirect URIs**: `http://localhost:3000/auth/google/callback`
+6. Copy the generated **Client ID** and **Client Secret** into your `backend/.env`:
+   ```env
+   GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+   GOOGLE_CLIENT_SECRET="your-client-secret"
+   GOOGLE_CALLBACK_URL="http://localhost:3000/auth/google/callback"
+   ```
+
 ---
 
 ## Running Tests

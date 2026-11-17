@@ -6,11 +6,13 @@ import {
   HttpStatus,
   Ip,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
@@ -18,6 +20,7 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
+import { GoogleService } from './google/google.service.js';
 import { SessionAuthGuard } from './guards/session-auth.guard.js';
 
 interface RequestWithAuth extends Request {
@@ -32,6 +35,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly googleService: GoogleService,
   ) {
     this.isProduction = this.configService.get<string>('NODE_ENV') === 'production';
   }
@@ -119,6 +123,70 @@ export class AuthController {
       resetPasswordDto.token,
       resetPasswordDto.newPassword,
     );
+  }
+
+  @Get('google')
+  async googleAuth(@Res() res: Response) {
+    const state = randomBytes(32).toString('hex');
+
+    res.cookie('oauth_google_state', state, {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      path: '/',
+    });
+
+    const authUrl = this.googleService.generateAuthUrl(state);
+    return res.redirect(authUrl);
+  }
+
+  @Get('google/callback')
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Ip() ip: string,
+  ) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const savedState = req.cookies?.oauth_google_state;
+
+    // Clear state cookie
+    res.clearCookie('oauth_google_state', {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    if (error) {
+      return res.redirect(`${frontendUrl}?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!state || !savedState || state !== savedState) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent('Invalid OAuth state. Please try again.')}`,
+      );
+    }
+
+    if (!code) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent('Missing authorization code from Google')}`,
+      );
+    }
+
+    try {
+      const userAgent = req.headers['user-agent'] as string | undefined;
+      const result = await this.authService.loginWithGoogle(code, userAgent, ip);
+      this.setSessionCookie(res, result.sessionId, result.expiresAt);
+      return res.redirect(frontendUrl);
+    } catch (err) {
+      return res.redirect(
+        `${frontendUrl}?error=${encodeURIComponent((err as Error).message)}`,
+      );
+    }
   }
 
   private setSessionCookie(res: Response, sessionId: string, expires: Date) {

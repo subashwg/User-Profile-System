@@ -182,11 +182,17 @@ export default function LoginForm({ apiUrl, onSuccess, onSwitchToRegister }: Log
       </div>
 
       <div className="social-buttons">
-        <button type="button" className="btn btn-social" disabled title="Coming in Step 7">
+        <button
+          type="button"
+          className="btn btn-social"
+          onClick={() => {
+            window.location.href = `${apiUrl}/auth/google`;
+          }}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12.24 10.285V13.4h6.887C18.2 16.037 15.64 18 12.24 18c-3.315 0-6-2.685-6-6s2.685-6 6-6c1.47 0 2.812.532 3.86 1.412l2.357-2.357C17.06 3.65 14.79 3 12.24 3 7.27 3 3.24 7.03 3.24 12s4.03 9 9 9c5.21 0 8.67-3.66 8.67-8.835 0-.61-.06-1.2-.17-1.765h-8.5z"/>
           </svg>
-          Continue with Google <span className="tag-soon">Soon</span>
+          Continue with Google
         </button>
         <button type="button" className="btn btn-social" disabled title="Coming in Step 8">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

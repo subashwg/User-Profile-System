@@ -80,8 +80,12 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const verifyToken = params.get('verify_token');
     const paramResetToken = params.get('reset_token');
+    const errorParam = params.get('error');
 
-    if (verifyToken) {
+    if (errorParam) {
+      setNotice({ type: 'error', message: decodeURIComponent(errorParam) });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (verifyToken) {
       fetch(`${apiUrl}/auth/verify-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

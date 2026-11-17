@@ -199,7 +199,7 @@ Build in nine small releases, one at a time. Finish, test and commit each before
 - [x] 4. Email verification: token table, sending (dev inbox locally), verify and resend endpoints
 - [x] 5. Forgot and reset password, ending old sessions after a reset
 - [x] 6. Onboarding: username check, complete-onboarding endpoint, resume-if-unfinished logic
-- [ ] 7. Google login with the linking rule
+- [x] 7. Google login with the linking rule
 - [ ] 8. Apple login, including first-time name capture and relay emails
 - [ ] 9. Account settings (list and add login methods, change password), rate limiting pass, security checklist pass
 
@@ -209,16 +209,16 @@ For each release, also write tests for the happy path and the main failure cases
 
 Step 1 is finished when every item below is true and tested.
 
-- [ ] A new user can sign up with email, verify it, and log in
-- [ ] A user can reset a forgotten password and old sessions end
-- [ ] A user can sign in with Google
+- [x] A new user can sign up with email, verify it, and log in
+- [x] A user can reset a forgotten password and old sessions end
+- [x] A user can sign in with Google
 - [ ] A user can sign in with Apple
-- [ ] Logging in by different methods with the same verified email does not create duplicate users
-- [ ] A new user is taken through onboarding once and can choose a unique username
-- [ ] Logout works and sessions expire
+- [x] Logging in by different methods with the same verified email does not create duplicate users
+- [x] A new user is taken through onboarding once and can choose a unique username
+- [x] Logout works and sessions expire
 - [ ] Login, register and reset requests are rate-limited
 - [ ] No password, token or secret appears in logs or in the repo
-- [ ] The README explains how to run the project and set up Google and Apple keys
+- [x] The README explains how to run the project and set up Google and Apple keys
 
 ## Using this doc in Antigravity
 

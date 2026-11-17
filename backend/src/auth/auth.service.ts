@@ -12,6 +12,7 @@ import { MailService } from '../mail/mail.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { GoogleService, type GoogleUserInfo } from './google/google.service.js';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly googleService: GoogleService,
   ) {
     const maxAgeDays = this.configService.get<number>('SESSION_MAX_AGE_DAYS', 30);
     this.sessionDurationMs = maxAgeDays * 24 * 60 * 60 * 1000;
@@ -337,6 +339,162 @@ export class AuthService {
     ]);
 
     return { message: 'Password has been reset successfully. Please log in with your new password.' };
+  }
+
+  async loginWithGoogle(code: string, userAgent?: string, ip?: string) {
+    const googleUser = await this.googleService.verifyCodeAndGetUserInfo(code);
+    return this.handleGoogleUser(googleUser, userAgent, ip);
+  }
+
+  async handleGoogleUser(googleUser: GoogleUserInfo, userAgent?: string, ip?: string) {
+    const normalizedEmail = googleUser.email.trim().toLowerCase();
+
+    // 1. Check if a LoginMethod already exists with this Google provider ID
+    const existingGoogleMethod = await this.prisma.loginMethod.findFirst({
+      where: {
+        type: 'google',
+        provider_user_id: googleUser.sub,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (existingGoogleMethod) {
+      if (existingGoogleMethod.user.deleted_at) {
+        throw new UnauthorizedException('Account is inactive');
+      }
+
+      // Update avatar or email_verified if newly confirmed by Google
+      const updateData: { last_login_at: Date; avatar_url?: string; email_verified?: boolean } = {
+        last_login_at: new Date(),
+      };
+      if (googleUser.picture && !existingGoogleMethod.user.avatar_url) {
+        updateData.avatar_url = googleUser.picture;
+      }
+      if (googleUser.email_verified && !existingGoogleMethod.user.email_verified) {
+        updateData.email_verified = true;
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingGoogleMethod.user.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          email_verified: true,
+          name: true,
+          username: true,
+          avatar_url: true,
+          onboarding_completed: true,
+          created_at: true,
+          last_login_at: true,
+        },
+      });
+
+      const session = await this.createSession(updatedUser.id, userAgent, ip);
+      return {
+        user: updatedUser,
+        sessionId: session.id,
+        expiresAt: session.expires_at,
+      };
+    }
+
+    // 2. Provider ID is new: Apply the Linking Rule
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      if (existingUser.deleted_at) {
+        throw new UnauthorizedException('Account is inactive');
+      }
+
+      // 2.1. Provider confirms email is verified -> link Google login method to existing user
+      if (googleUser.email_verified) {
+        await this.prisma.$transaction([
+          this.prisma.loginMethod.create({
+            data: {
+              user_id: existingUser.id,
+              type: 'google',
+              provider_user_id: googleUser.sub,
+            },
+          }),
+          this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              email_verified: true, // Confirmed by Google
+              last_login_at: new Date(),
+              avatar_url: existingUser.avatar_url || googleUser.picture || null,
+              name: existingUser.name || googleUser.name || null,
+            },
+          }),
+        ]);
+
+        const freshUser = await this.prisma.user.findUniqueOrThrow({
+          where: { id: existingUser.id },
+          select: {
+            id: true,
+            email: true,
+            email_verified: true,
+            name: true,
+            username: true,
+            avatar_url: true,
+            onboarding_completed: true,
+            created_at: true,
+            last_login_at: true,
+          },
+        });
+
+        const session = await this.createSession(freshUser.id, userAgent, ip);
+        return {
+          user: freshUser,
+          sessionId: session.id,
+          expiresAt: session.expires_at,
+        };
+      } else {
+        // 2.2. Email exists but provider does not confirm it as verified -> DO NOT MERGE!
+        throw new ConflictException(
+          'An account with this email already exists. Please log in with your original method first.',
+        );
+      }
+    }
+
+    // 2.3. No user with this email -> create new User and Google LoginMethod, then start onboarding
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        email_verified: googleUser.email_verified,
+        name: googleUser.name || null,
+        avatar_url: googleUser.picture || null,
+        onboarding_completed: false,
+        last_login_at: new Date(),
+        login_methods: {
+          create: {
+            type: 'google',
+            provider_user_id: googleUser.sub,
+          },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        email_verified: true,
+        name: true,
+        username: true,
+        avatar_url: true,
+        onboarding_completed: true,
+        created_at: true,
+        last_login_at: true,
+      },
+    });
+
+    const session = await this.createSession(newUser.id, userAgent, ip);
+    return {
+      user: newUser,
+      sessionId: session.id,
+      expiresAt: session.expires_at,
+    };
   }
 
   private async createSession(userId: string, userAgent?: string, ip?: string) {
