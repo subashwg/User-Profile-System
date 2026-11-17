@@ -1,118 +1,161 @@
 import { useCallback, useEffect, useState } from 'react';
 import './App.css';
+import LoginForm from './components/LoginForm.js';
+import RegisterForm from './components/RegisterForm.js';
+import UserDashboard from './components/UserDashboard.js';
 
 interface HealthData {
   status: string;
   timestamp: string;
   uptime: number;
   database: 'connected' | 'disconnected' | string;
+  stats?: {
+    usersCount: number;
+    loginMethodsCount: number;
+  };
 }
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('register');
+
   const [health, setHealth] = useState<HealthData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [showSystemStatus, setShowSystemStatus] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  const checkHealth = useCallback(() => {
-    setLoading(true);
-    fetch(`${apiUrl}/health`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data: HealthData) => {
-        setHealth(data);
-        setError(null);
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message);
-        setLoading(false);
+  // Check current session
+  const checkSession = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/auth/me`, {
+        credentials: 'include',
       });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+      } else {
+        setCurrentUser(null);
+      }
+    } catch {
+      setCurrentUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [apiUrl]);
+
+  const checkHealth = useCallback(() => {
+    fetch(`${apiUrl}/health`)
+      .then((res) => res.json())
+      .then((data) => setHealth(data))
+      .catch(() => {});
   }, [apiUrl]);
 
   useEffect(() => {
+    checkSession();
     checkHealth();
-    const interval = setInterval(checkHealth, 5000);
+    const interval = setInterval(checkHealth, 10000);
     return () => clearInterval(interval);
-  }, [checkHealth]);
+  }, [checkSession, checkHealth]);
+
+  const handleAuthSuccess = (user: any) => {
+    setCurrentUser(user);
+    checkHealth();
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setAuthTab('login');
+    checkHealth();
+  };
 
   return (
     <div className="app-container">
-      <div className="header-section">
+      <header className="header-section">
         <h1 className="app-title">Portfolio Profile System</h1>
         <p className="app-subtitle">Step 1: Auth &amp; Onboarding</p>
-      </div>
+      </header>
 
-      <div className="status-card">
-        <div className="card-header">
-          <h2 className="card-title">System Status</h2>
-          <button className="refresh-btn" onClick={checkHealth} disabled={loading}>
-            {loading ? 'Checking...' : 'Refresh'}
-          </button>
-        </div>
-
-        {error ? (
-          <div className="info-box badge-error" style={{ display: 'block' }}>
-            <strong>Backend Unreachable:</strong> {error}
-            <div style={{ marginTop: '4px' }}>
-              Verify that the backend server is running on <code>{apiUrl}</code>.
-            </div>
+      <main className="main-content">
+        {authLoading ? (
+          <div className="status-card" style={{ textAlign: 'center', padding: '40px' }}>
+            <p>Checking authentication session...</p>
           </div>
-        ) : health ? (
-          <div className="status-grid">
-            <div className="status-row">
-              <span className="status-label">Backend API</span>
-              <span className="badge badge-success">
-                <span className="dot dot-green"></span>
-                ONLINE (HTTP 200)
-              </span>
+        ) : currentUser ? (
+          <UserDashboard
+            user={currentUser}
+            apiUrl={apiUrl}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <div className="auth-card-container">
+            <div className="auth-tabs">
+              <button
+                className={`tab-btn ${authTab === 'register' ? 'active' : ''}`}
+                onClick={() => setAuthTab('register')}
+              >
+                Sign Up
+              </button>
+              <button
+                className={`tab-btn ${authTab === 'login' ? 'active' : ''}`}
+                onClick={() => setAuthTab('login')}
+              >
+                Log In
+              </button>
             </div>
 
-            <div className="status-row">
-              <span className="status-label">PostgreSQL Database</span>
-              {health.database === 'connected' ? (
-                <span className="badge badge-success">
-                  <span className="dot dot-green"></span>
-                  CONNECTED
-                </span>
+            <div className="auth-card-body">
+              {authTab === 'register' ? (
+                <RegisterForm
+                  apiUrl={apiUrl}
+                  onSuccess={handleAuthSuccess}
+                  onSwitchToLogin={() => setAuthTab('login')}
+                />
               ) : (
-                <span className="badge badge-warning">
-                  <span className="dot dot-orange"></span>
-                  DISCONNECTED
-                </span>
+                <LoginForm
+                  apiUrl={apiUrl}
+                  onSuccess={handleAuthSuccess}
+                  onSwitchToRegister={() => setAuthTab('register')}
+                />
               )}
             </div>
-
-            <div className="status-row">
-              <span className="status-label">Server Time</span>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-h)', fontFamily: 'var(--mono)' }}>
-                {new Date(health.timestamp).toLocaleTimeString()}
-              </span>
-            </div>
-
-            <div className="status-row">
-              <span className="status-label">Uptime</span>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-h)', fontFamily: 'var(--mono)' }}>
-                {Math.floor(health.uptime)} seconds
-              </span>
-            </div>
-
-            {health.database === 'disconnected' && (
-              <div className="info-box">
-                <strong>Database Not Connected</strong>
-                <div style={{ marginTop: '6px' }}>
-                  PostgreSQL is not responding on <code>localhost:5432</code>. Starting PostgreSQL will automatically switch the status to Connected.
-                </div>
-              </div>
-            )}
           </div>
-        ) : (
-          <p style={{ color: 'var(--text)' }}>Loading status...</p>
         )}
-      </div>
+      </main>
+
+      <footer className="footer-section">
+        <div className="system-pill" onClick={() => setShowSystemStatus(!showSystemStatus)}>
+          <span className="dot dot-green"></span>
+          <span>System Live</span>
+          <span className="badge badge-success" style={{ marginLeft: '4px' }}>
+            DB {health?.database?.toUpperCase() || 'CHECKING'}
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text)' }}>
+            {showSystemStatus ? '▲ Hide Status' : '▼ View System & DB Info'}
+          </span>
+        </div>
+
+        {showSystemStatus && health && (
+          <div className="status-card" style={{ marginTop: '12px' }}>
+            <div className="status-grid">
+              <div className="status-row">
+                <span className="status-label">API Health:</span>
+                <span className="badge badge-success">● {health.status.toUpperCase()}</span>
+              </div>
+              <div className="status-row">
+                <span className="status-label">Database Connection:</span>
+                <span className="badge badge-success">● {health.database.toUpperCase()}</span>
+              </div>
+              {health.stats && (
+                <div className="status-row">
+                  <span className="status-label">Registered Accounts:</span>
+                  <span style={{ fontFamily: 'var(--mono)' }}>{health.stats.usersCount} users</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </footer>
     </div>
   );
 }

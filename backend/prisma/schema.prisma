@@ -27,6 +27,7 @@ model User {
   last_login_at        DateTime?     @map("last_login_at")
   deleted_at           DateTime?     @map("deleted_at")
   login_methods        LoginMethod[]
+  sessions             Session[]
 
   @@map("users")
 }
@@ -42,4 +43,16 @@ model LoginMethod {
 
   @@unique([type, provider_user_id])
   @@map("login_methods")
+}
+
+model Session {
+  id         String   @id
+  user_id    String   @map("user_id")
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime @map("expires_at")
+  user_agent String?  @map("user_agent")
+  ip         String?  @map("ip")
+  created_at DateTime @default(now()) @map("created_at")
+
+  @@map("sessions")
 }
