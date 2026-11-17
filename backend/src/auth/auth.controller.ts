@@ -23,6 +23,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { AppleService } from './apple/apple.service.js';
 import { GoogleService } from './google/google.service.js';
 import { SessionAuthGuard } from './guards/session-auth.guard.js';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard.js';
 
 interface RequestWithAuth extends Request {
   user: { id: string; email: string };
@@ -43,6 +44,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @UseGuards(RateLimitGuard)
   async register(
     @Body() registerDto: RegisterDto,
     @Req() req: Request,
@@ -62,6 +64,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
   async login(
     @Body() loginDto: LoginDto,
     @Req() req: Request,
@@ -107,19 +110,21 @@ export class AuthController {
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionAuthGuard)
+  @UseGuards(SessionAuthGuard, RateLimitGuard)
   async resendVerification(@Req() req: RequestWithAuth) {
     return this.authService.resendVerification(req.user.id);
   }
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(
       resetPasswordDto.token,
