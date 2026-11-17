@@ -194,7 +194,7 @@ These rules apply to every task. If a task seems to need breaking one, stop and 
 Build in nine small releases, one at a time. Finish, test and commit each before starting the next.
 
 - [x] 1. Project setup: repo, backend skeleton, database connection, environment config, .env.example, README with run steps
-- [ ] 2. Database: User and Login method tables, first migration
+- [x] 2. Database: User and Login method tables, first migration
 - [ ] 3. Email sign-up, login, logout and GET /auth/me with sessions and password hashing
 - [ ] 4. Email verification: token table, sending (dev inbox locally), verify and resend endpoints
 - [ ] 5. Forgot and reset password, ending old sessions after a reset

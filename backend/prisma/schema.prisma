@@ -7,7 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model HealthCheck {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+enum LoginMethodType {
+  email
+  google
+  apple
+
+  @@map("login_method_type")
+}
+
+model User {
+  id                   String        @id @default(uuid())
+  email                String        @unique
+  email_verified       Boolean       @default(false) @map("email_verified")
+  name                 String?
+  username             String?       @unique
+  avatar_url           String?       @map("avatar_url")
+  onboarding_completed Boolean       @default(false) @map("onboarding_completed")
+  created_at           DateTime      @default(now()) @map("created_at")
+  last_login_at        DateTime?     @map("last_login_at")
+  deleted_at           DateTime?     @map("deleted_at")
+  login_methods        LoginMethod[]
+
+  @@map("users")
+}
+
+model LoginMethod {
+  id               String          @id @default(uuid())
+  user_id          String          @map("user_id")
+  user             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type             LoginMethodType
+  provider_user_id String?         @map("provider_user_id")
+  password_hash    String?         @map("password_hash")
+  created_at       DateTime        @default(now()) @map("created_at")
+
+  @@unique([type, provider_user_id])
+  @@map("login_methods")
 }
