@@ -22,6 +22,13 @@ enum TokenPurpose {
   @@map("token_purpose")
 }
 
+enum ProfileStatus {
+  draft
+  published
+
+  @@map("profile_status")
+}
+
 model User {
   id                   String        @id @default(uuid())
   email                String        @unique
@@ -36,6 +43,8 @@ model User {
   login_methods        LoginMethod[]
   sessions             Session[]
   email_tokens         EmailToken[]
+  profile              Profile?
+  roles                Role[]
 
   @@map("users")
 }
@@ -77,4 +86,47 @@ model EmailToken {
 
   @@index([token_hash])
   @@map("email_tokens")
+}
+
+model Profile {
+  id           String        @id @default(uuid())
+  user_id      String        @unique @map("user_id")
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  headline     String?       @map("headline")
+  bio          String?       @map("bio")
+  location     String?       @map("location")
+  avatar_url   String?       @map("avatar_url")
+  status       ProfileStatus @default(draft) @map("status")
+  published_at DateTime?     @map("published_at")
+  created_at   DateTime      @default(now()) @map("created_at")
+  updated_at   DateTime      @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  user_id     String   @map("user_id")
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title       String   @map("title")
+  description String?  @map("description")
+  position    Int      @default(0) @map("position")
+  is_primary  Boolean  @default(false) @map("is_primary")
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+  skills      Skill[]
+
+  @@map("roles")
+}
+
+model Skill {
+  id         String   @id @default(uuid())
+  role_id    String   @map("role_id")
+  role       Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  name       String   @map("name")
+  position   Int      @default(0) @map("position")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  @@map("skills")
 }
