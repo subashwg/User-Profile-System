@@ -220,7 +220,7 @@ Build in eight small releases, one at a time. Finish, test and commit each befor
 - [x] 3\. Avatar: upload, resize, replace, remove, initials fallback, Google photo fallback
 - [x] 4\. Roles: presets endpoint, add, edit, delete, primary role, reorder, limit of 5
 - [x] 5\. Skills: add, remove, reorder, limits and duplicate checks
-- [ ] 6\. Onboarding screen "What do you do?" with POST /onboarding/roles, skippable
+- [x] 6\. Onboarding screen "What do you do?" with POST /onboarding/roles, skippable
 - [ ] 7\. Public profile: GET /public/:username, the `/<username>` page, draft and published, owner preview, publish and unpublish, reserved usernames
 - [ ] 8\. Profile editor screen, page title and sharing tags, tests and the ownership and privacy checks
 
@@ -230,7 +230,7 @@ For each release, write tests for the happy path and the main failure cases: som
 
 Step 2 is finished when every item below is true and tested.
 
-- [ ] A new user can pick roles during onboarding, or skip and add them later
+- [x] A new user can pick roles during onboarding, or skip and add them later
 - [x] A user can edit headline, bio and location with the limits enforced
 - [x] A user can upload, replace and remove an avatar, and a fake or oversized file is rejected
 - [x] A user can add up to 5 roles, reorder them and change the primary role

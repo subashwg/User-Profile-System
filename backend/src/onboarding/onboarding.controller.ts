@@ -10,6 +10,7 @@ import {
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard.js';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto.js';
+import { OnboardingRolesDto } from './dto/onboarding-roles.dto.js';
 import { OnboardingService } from './onboarding.service.js';
 
 interface RequestWithAuth extends Request {
@@ -41,6 +42,19 @@ export class OnboardingController {
     return this.onboardingService.completeOnboarding(
       req.user.id,
       completeOnboardingDto,
+    );
+  }
+
+  @Post('roles')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  async saveRoles(
+    @Body() onboardingRolesDto: OnboardingRolesDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.onboardingService.saveOnboardingRoles(
+      req.user.id,
+      onboardingRolesDto,
     );
   }
 }
