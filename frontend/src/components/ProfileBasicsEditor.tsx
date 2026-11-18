@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Avatar from './Avatar.js';
 
 interface User {
   id: string;
@@ -15,6 +16,7 @@ interface ProfileData {
   bio: string | null;
   location: string | null;
   avatar_url: string | null;
+  effective_avatar_url?: string | null;
   status: 'draft' | 'published';
   published_at?: string | null;
 }
@@ -28,6 +30,7 @@ interface ProfileBasicsEditorProps {
 const MAX_HEADLINE = 120;
 const MAX_BIO = 500;
 const MAX_LOCATION = 80;
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 
 export default function ProfileBasicsEditor({
   user,
@@ -37,10 +40,17 @@ export default function ProfileBasicsEditor({
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Avatar upload states
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarRemoving, setAvatarRemoving] = useState(false);
+  const [avatarNotice, setAvatarNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,6 +65,7 @@ export default function ProfileBasicsEditor({
             setHeadline(data.headline || '');
             setBio(data.bio || '');
             setLocation(data.location || '');
+            setAvatarUrl(data.avatar_url || null);
             setStatus(data.status || 'draft');
           }
         }
@@ -70,6 +81,92 @@ export default function ProfileBasicsEditor({
       isMounted = false;
     };
   }, [apiUrl]);
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarNotice(null);
+
+    // Client-side validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setAvatarNotice({
+        type: 'error',
+        message: 'File size exceeds the 2MB limit. Please choose a smaller photo.',
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setAvatarNotice({
+        type: 'error',
+        message: 'Only JPEG, PNG, and WebP images are supported.',
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setAvatarUploading(true);
+    try {
+      const res = await fetch(`${apiUrl}/profile/avatar`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to upload avatar');
+      }
+
+      setAvatarUrl(data.avatar_url);
+      setAvatarNotice({
+        type: 'success',
+        message: 'Avatar photo uploaded and cropped to 512×512 square!',
+      });
+      onProfileUpdated?.(data);
+    } catch (err) {
+      setAvatarNotice({ type: 'error', message: (err as Error).message });
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarNotice(null);
+    setAvatarRemoving(true);
+
+    try {
+      const res = await fetch(`${apiUrl}/profile/avatar`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to remove avatar');
+      }
+
+      setAvatarUrl(null);
+      setAvatarNotice({
+        type: 'success',
+        message: user.avatar_url
+          ? 'Custom photo removed. Reverted to your Google profile photo.'
+          : 'Custom photo removed. Reverted to initials fallback.',
+      });
+      onProfileUpdated?.(data);
+    } catch (err) {
+      setAvatarNotice({ type: 'error', message: (err as Error).message });
+    } finally {
+      setAvatarRemoving(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +193,7 @@ export default function ProfileBasicsEditor({
       setHeadline(data.headline || '');
       setBio(data.bio || '');
       setLocation(data.location || '');
+      setAvatarUrl(data.avatar_url || null);
       setStatus(data.status || 'draft');
       setNotice({ type: 'success', message: 'Profile details saved successfully!' });
       onProfileUpdated?.(data);
@@ -105,6 +203,9 @@ export default function ProfileBasicsEditor({
       setSaving(false);
     }
   };
+
+  // Resolve absolute avatar URL if custom avatar path is relative
+  const customAbsoluteUrl = avatarUrl ? `${apiUrl}${avatarUrl}` : null;
 
   if (loading) {
     return (
@@ -119,10 +220,10 @@ export default function ProfileBasicsEditor({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
           <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', color: 'var(--text-h)' }}>
-            Profile Basics
+            Profile & Avatar
           </h3>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text)' }}>
-            Tell visitors who you are with your headline, bio, and location.
+            Customize your public presence, profile photo, headline, and bio.
           </p>
         </div>
         <span className={`badge ${status === 'published' ? 'badge-success' : 'badge-warning'}`}>
@@ -130,7 +231,7 @@ export default function ProfileBasicsEditor({
         </span>
       </div>
 
-      {/* Identity Summary header */}
+      {/* Identity Summary banner */}
       <div
         style={{
           background: 'rgba(0, 0, 0, 0.03)',
@@ -153,6 +254,93 @@ export default function ProfileBasicsEditor({
         <span style={{ fontSize: '0.78rem', color: 'var(--text)' }}>
           Name & username managed in Account Settings
         </span>
+      </div>
+
+      {/* Avatar Management Card */}
+      <div
+        style={{
+          border: '1px solid var(--border)',
+          borderRadius: '10px',
+          padding: '16px',
+          marginBottom: '24px',
+          background: 'var(--code-bg)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+          <Avatar
+            customAvatarUrl={customAbsoluteUrl}
+            providerAvatarUrl={user.avatar_url}
+            name={user.name}
+            username={user.username}
+            email={user.email}
+            size={76}
+          />
+
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-h)' }}>
+                Profile Photo
+              </span>
+              {avatarUrl ? (
+                <span className="badge badge-success">Custom Upload</span>
+              ) : user.avatar_url ? (
+                <span className="badge badge-success">Google Photo</span>
+              ) : (
+                <span className="badge badge-warning">Initials Circle</span>
+              )}
+            </div>
+
+            <p style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: 'var(--text)' }}>
+              Square crop, 512×512 WebP. JPEG, PNG or WebP up to 2MB.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style={{ display: 'none' }}
+                onChange={handleAvatarFileSelect}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+                disabled={avatarUploading || avatarRemoving}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {avatarUploading ? 'Uploading & Cropping...' : 'Upload Photo'}
+              </button>
+
+              {avatarUrl && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{
+                    fontSize: '0.82rem',
+                    padding: '6px 14px',
+                    borderColor: '#fca5a5',
+                    color: '#dc2626',
+                  }}
+                  disabled={avatarUploading || avatarRemoving}
+                  onClick={handleRemoveAvatar}
+                >
+                  {avatarRemoving ? 'Removing...' : 'Remove Photo'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {avatarNotice && (
+          <div
+            className={`alert ${avatarNotice.type === 'success' ? 'alert-info' : 'alert-error'}`}
+            style={{ marginTop: '12px', marginBottom: 0 }}
+          >
+            <span>{avatarNotice.type === 'success' ? '✅' : '⚠️'}</span>
+            <div>{avatarNotice.message}</div>
+          </div>
+        )}
       </div>
 
       {notice && (

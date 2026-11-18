@@ -12,6 +12,9 @@ dist/
 build/
 *.tsbuildinfo
 .data/
+uploads/
+backend/uploads/*
+!backend/uploads/avatars/.gitkeep
 
 # Environment and secrets
 .env

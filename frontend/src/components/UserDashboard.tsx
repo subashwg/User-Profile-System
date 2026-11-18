@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Avatar from './Avatar.js';
 import ProfileBasicsEditor from './ProfileBasicsEditor.js';
 
 interface User {
@@ -144,10 +145,19 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
 
   return (
     <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div>
-          <h2 className="dashboard-title">Welcome, {user.name || user.email.split('@')[0]}!</h2>
-          <p className="dashboard-subtitle">Authenticated via secure session cookie</p>
+      <div className="dashboard-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <Avatar
+            providerAvatarUrl={user.avatar_url}
+            name={user.name}
+            username={user.username}
+            email={user.email}
+            size={48}
+          />
+          <div>
+            <h2 className="dashboard-title" style={{ margin: 0 }}>Welcome, {user.name || user.email.split('@')[0]}!</h2>
+            <p className="dashboard-subtitle" style={{ margin: '2px 0 0 0' }}>Authenticated via secure session cookie</p>
+          </div>
         </div>
         <button
           className="btn btn-secondary"
