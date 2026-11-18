@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Avatar from './Avatar.js';
 import ProfileBasicsEditor from './ProfileBasicsEditor.js';
+import RolesManager from './RolesManager.js';
 
 interface User {
   id: string;
@@ -207,6 +208,9 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
 
       {/* Profile Basics Editor (Step 2) */}
       <ProfileBasicsEditor user={user} apiUrl={apiUrl} />
+
+      {/* Roles Manager (Step 2) */}
+      <RolesManager apiUrl={apiUrl} />
 
       {/* Account Profile Card */}
       <div className="profile-details-card" style={{ marginTop: '20px' }}>

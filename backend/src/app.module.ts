@@ -11,6 +11,7 @@ import { MailModule } from './mail/mail.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProfileModule } from './profile/profile.module.js';
+import { RolesModule } from './roles/roles.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module.js';
     AccountModule,
     StorageModule,
     ProfileModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
