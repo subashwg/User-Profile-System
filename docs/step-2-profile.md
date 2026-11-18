@@ -219,7 +219,7 @@ Build in eight small releases, one at a time. Finish, test and commit each befor
 - [x] 2\. Profile basics: GET and PATCH /profile/me with validation and the character limits
 - [x] 3\. Avatar: upload, resize, replace, remove, initials fallback, Google photo fallback
 - [x] 4\. Roles: presets endpoint, add, edit, delete, primary role, reorder, limit of 5
-- [ ] 5\. Skills: add, remove, reorder, limits and duplicate checks
+- [x] 5\. Skills: add, remove, reorder, limits and duplicate checks
 - [ ] 6\. Onboarding screen "What do you do?" with POST /onboarding/roles, skippable
 - [ ] 7\. Public profile: GET /public/:username, the `/<username>` page, draft and published, owner preview, publish and unpublish, reserved usernames
 - [ ] 8\. Profile editor screen, page title and sharing tags, tests and the ownership and privacy checks
@@ -234,7 +234,7 @@ Step 2 is finished when every item below is true and tested.
 - [x] A user can edit headline, bio and location with the limits enforced
 - [x] A user can upload, replace and remove an avatar, and a fake or oversized file is rejected
 - [x] A user can add up to 5 roles, reorder them and change the primary role
-- [ ] A user can add and remove skills under each role, with no duplicates
+- [x] A user can add and remove skills under each role, with no duplicates
 - [ ] The public page at the user's username shows avatar, name, headline, location, bio and role cards
 - [ ] A draft is visible only to its owner; strangers get the same 404 as for an unknown username
 - [ ] Publish needs a headline and at least one role; unpublish works

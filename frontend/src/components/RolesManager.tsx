@@ -38,6 +38,243 @@ const FALLBACK_PRESETS = [
 const MAX_ROLES = 5;
 const MAX_TITLE = 60;
 const MAX_DESCRIPTION = 200;
+const MAX_SKILLS = 15;
+const MAX_SKILL_NAME = 40;
+
+interface RoleSkillsProps {
+  role: Role;
+  apiUrl: string;
+  onUpdated: () => void;
+}
+
+function RoleSkillsEditor({ role, apiUrl, onUpdated }: RoleSkillsProps) {
+  const [newSkillName, setNewSkillName] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+
+  const handleAddSkill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const clean = newSkillName.trim();
+    if (!clean) return;
+
+    if (role.skills.length >= MAX_SKILLS) {
+      setErrorMsg(`Maximum of ${MAX_SKILLS} skills reached for this role.`);
+      return;
+    }
+
+    // Client duplicate check
+    if (role.skills.some((s) => s.name.toLowerCase() === clean.toLowerCase())) {
+      setErrorMsg(`Skill "${clean}" already exists under this role.`);
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const res = await fetch(`${apiUrl}/roles/${role.id}/skills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: clean }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to add skill');
+      }
+
+      setNewSkillName('');
+      onUpdated();
+    } catch (err) {
+      setErrorMsg((err as Error).message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleDeleteSkill = async (skillId: string) => {
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`${apiUrl}/roles/${role.id}/skills/${skillId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to delete skill');
+      }
+
+      onUpdated();
+    } catch (err) {
+      setErrorMsg((err as Error).message);
+    }
+  };
+
+  const handleMoveSkill = async (index: number, direction: 'left' | 'right') => {
+    if (reordering) return;
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= role.skills.length) return;
+
+    const newSkills = [...role.skills];
+    const temp = newSkills[index];
+    newSkills[index] = newSkills[targetIndex];
+    newSkills[targetIndex] = temp;
+
+    setReordering(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch(`${apiUrl}/roles/${role.id}/skills/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          skill_ids: newSkills.map((s) => s.id),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to reorder skills');
+      }
+
+      onUpdated();
+    } catch (err) {
+      setErrorMsg((err as Error).message);
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-h)' }}>
+          Skills ({role.skills.length} / {MAX_SKILLS})
+        </span>
+        {role.skills.length >= MAX_SKILLS && (
+          <span style={{ fontSize: '0.75rem', color: '#ea580c' }}>Max skills limit reached</span>
+        )}
+      </div>
+
+      {errorMsg && (
+        <div style={{ fontSize: '0.78rem', color: '#ef4444', marginBottom: '8px' }}>
+          ⚠️ {errorMsg}
+        </div>
+      )}
+
+      {/* Skills Pills */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+        {role.skills.map((skill, sIdx) => (
+          <span
+            key={skill.id}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '16px',
+              background: 'var(--code-bg)',
+              border: '1px solid var(--border)',
+              fontSize: '0.82rem',
+              color: 'var(--text-h)',
+              fontWeight: 500,
+            }}
+          >
+            {sIdx > 0 && (
+              <button
+                type="button"
+                className="link-btn"
+                style={{ padding: '0 2px', fontSize: '0.7rem', color: 'var(--text)', lineHeight: 1 }}
+                onClick={() => handleMoveSkill(sIdx, 'left')}
+                title="Move left"
+                disabled={reordering}
+              >
+                ◀
+              </button>
+            )}
+            <span>{skill.name}</span>
+            {sIdx < role.skills.length - 1 && (
+              <button
+                type="button"
+                className="link-btn"
+                style={{ padding: '0 2px', fontSize: '0.7rem', color: 'var(--text)', lineHeight: 1 }}
+                onClick={() => handleMoveSkill(sIdx, 'right')}
+                title="Move right"
+                disabled={reordering}
+              >
+                ▶
+              </button>
+            )}
+            <button
+              type="button"
+              className="link-btn"
+              style={{
+                padding: '0 2px',
+                fontSize: '0.9rem',
+                color: '#ef4444',
+                fontWeight: 700,
+                lineHeight: 1,
+                marginLeft: '2px',
+              }}
+              onClick={() => handleDeleteSkill(skill.id)}
+              title="Remove skill"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+
+        {role.skills.length === 0 && (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text)', fontStyle: 'italic' }}>
+            No skills added yet. Add skills below!
+          </span>
+        )}
+      </div>
+
+      {/* Add Skill Input Form */}
+      {role.skills.length < MAX_SKILLS && (
+        <form onSubmit={handleAddSkill} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              type="text"
+              className="form-input"
+              style={{ padding: '5px 45px 5px 10px', fontSize: '0.82rem' }}
+              placeholder="Add skill (e.g. Playwright, React, Vitest)..."
+              value={newSkillName}
+              maxLength={MAX_SKILL_NAME}
+              onChange={(e) => setNewSkillName(e.target.value)}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '0.7rem',
+                color: 'var(--text)',
+              }}
+            >
+              {newSkillName.length}/{MAX_SKILL_NAME}
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-secondary"
+            style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+            disabled={adding || !newSkillName.trim()}
+          >
+            {adding ? 'Adding...' : '+ Add'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
 
 export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerProps) {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -279,7 +516,7 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
   if (loading) {
     return (
       <div className="profile-details-card" style={{ marginTop: '20px', textAlign: 'center', padding: '24px' }}>
-        <p style={{ color: 'var(--text)', margin: 0 }}>Loading roles...</p>
+        <p style={{ color: 'var(--text)', margin: 0 }}>Loading roles & skills...</p>
       </div>
     );
   }
@@ -289,10 +526,10 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
           <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', color: 'var(--text-h)' }}>
-            Roles ({roles.length} / {MAX_ROLES})
+            Roles & Skills ({roles.length} / {MAX_ROLES})
           </h3>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text)' }}>
-            Highlight your different disciplines. One role is marked primary and shows next to your name.
+            Highlight your different disciplines and list up to 15 skills under each role.
           </p>
         </div>
 
@@ -471,7 +708,7 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {roles.map((role, index) => (
             <div
               key={role.id}
@@ -603,9 +840,6 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
                           Set as Primary
                         </button>
                       )}
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text)' }}>
-                        • {role.skills.length} skills
-                      </span>
                     </div>
 
                     {/* Order buttons & Edit/Delete actions */}
@@ -654,6 +888,13 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
                       {role.description}
                     </p>
                   )}
+
+                  {/* Skills Editor under this Role */}
+                  <RoleSkillsEditor
+                    role={role}
+                    apiUrl={apiUrl}
+                    onUpdated={fetchRolesAndPresets}
+                  />
                 </div>
               )}
             </div>
