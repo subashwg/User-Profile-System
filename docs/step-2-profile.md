@@ -216,7 +216,7 @@ The Step 1 security rules still apply. These are the extra rules for Step 2.
 Build in eight small releases, one at a time. Finish, test and commit each before starting the next.
 
 - [x] 1\. Database: Profile, Role and Skill tables and the first migration; create an empty Profile for every user who already has an account
-- [ ] 2\. Profile basics: GET and PATCH /profile/me with validation and the character limits
+- [x] 2\. Profile basics: GET and PATCH /profile/me with validation and the character limits
 - [ ] 3\. Avatar: upload, resize, replace, remove, initials fallback, Google photo fallback
 - [ ] 4\. Roles: presets endpoint, add, edit, delete, primary role, reorder, limit of 5
 - [ ] 5\. Skills: add, remove, reorder, limits and duplicate checks
@@ -231,7 +231,7 @@ For each release, write tests for the happy path and the main failure cases: som
 Step 2 is finished when every item below is true and tested.
 
 - [ ] A new user can pick roles during onboarding, or skip and add them later
-- [ ] A user can edit headline, bio and location with the limits enforced
+- [x] A user can edit headline, bio and location with the limits enforced
 - [ ] A user can upload, replace and remove an avatar, and a fake or oversized file is rejected
 - [ ] A user can add up to 5 roles, reorder them and change the primary role
 - [ ] A user can add and remove skills under each role, with no duplicates

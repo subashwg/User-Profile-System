@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ProfileBasicsEditor from './ProfileBasicsEditor.js';
 
 interface User {
   id: string;
@@ -193,6 +194,9 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
           </div>
         </div>
       )}
+
+      {/* Profile Basics Editor (Step 2) */}
+      <ProfileBasicsEditor user={user} apiUrl={apiUrl} />
 
       {/* Account Profile Card */}
       <div className="profile-details-card" style={{ marginTop: '20px' }}>
