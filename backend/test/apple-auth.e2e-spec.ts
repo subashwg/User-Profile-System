@@ -97,9 +97,10 @@ describe('Apple Sign-In, Name Capture & Linking Rule (e2e)', () => {
     );
 
     await app.init();
+    await app.listen(0);
     prisma = app.get(PrismaService);
     mailService = app.get(MailService);
-  }, 20000);
+  }, 30000);
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -108,10 +109,15 @@ describe('Apple Sign-In, Name Capture & Linking Rule (e2e)', () => {
 
   beforeEach(async () => {
     mailService.clearLatestEmails();
-    await prisma.emailToken.deleteMany({});
-    await prisma.session.deleteMany({});
-    await prisma.loginMethod.deleteMany({});
-    await prisma.user.deleteMany({});
+    await prisma.$transaction([
+      prisma.skill.deleteMany(),
+      prisma.role.deleteMany(),
+      prisma.profile.deleteMany(),
+      prisma.emailToken.deleteMany(),
+      prisma.session.deleteMany(),
+      prisma.loginMethod.deleteMany(),
+      prisma.user.deleteMany(),
+    ]);
   });
 
   describe('GET /auth/apple', () => {

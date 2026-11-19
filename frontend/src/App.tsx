@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import LoginForm from './components/LoginForm.js';
 import OnboardingForm from './components/OnboardingForm.js';
+import PublicProfileView from './components/PublicProfileView.js';
 import RegisterForm from './components/RegisterForm.js';
 import ResetPasswordForm from './components/ResetPasswordForm.js';
 import UserDashboard from './components/UserDashboard.js';
@@ -38,7 +39,32 @@ export default function App() {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [showSystemStatus, setShowSystemStatus] = useState(false);
 
+  const [publicUsername, setPublicUsername] = useState<string | null>(null);
+
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const parseRoute = useCallback(() => {
+    const path = window.location.pathname;
+    if (path.startsWith('/@')) {
+      const u = path.slice(2).trim();
+      setPublicUsername(u || null);
+    } else if (
+      path.length > 1 &&
+      !['/login', '/register', '/health', '/api', '/dashboard'].includes(path)
+    ) {
+      const u = path.slice(1).trim();
+      setPublicUsername(u || null);
+    } else {
+      setPublicUsername(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    parseRoute();
+    const handlePopState = () => parseRoute();
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [parseRoute]);
 
   // Check current session
   const checkSession = useCallback(async () => {
@@ -159,7 +185,7 @@ export default function App() {
     <div className="app-container">
       <header className="header-section">
         <h1 className="app-title">Portfolio Profile System</h1>
-        <p className="app-subtitle">Step 1: Auth &amp; Onboarding</p>
+        <p className="app-subtitle">Step 2: Profile, Roles &amp; Skills</p>
       </header>
 
       {notice && (
@@ -178,7 +204,20 @@ export default function App() {
       )}
 
       <main className="main-content">
-        {authLoading ? (
+        {publicUsername ? (
+          <PublicProfileView
+            username={publicUsername}
+            apiUrl={apiUrl}
+            onNavigateHome={() => {
+              window.history.pushState({}, '', '/');
+              setPublicUsername(null);
+            }}
+            onEditProfile={() => {
+              window.history.pushState({}, '', '/');
+              setPublicUsername(null);
+            }}
+          />
+        ) : authLoading ? (
           <div className="status-card" style={{ textAlign: 'center', padding: '40px' }}>
             <p>Checking authentication session...</p>
           </div>
@@ -212,6 +251,10 @@ export default function App() {
             <UserDashboard
               user={currentUser}
               apiUrl={apiUrl}
+              onViewPublicProfile={(u: string) => {
+                window.history.pushState({}, '', `/@${u}`);
+                setPublicUsername(u);
+              }}
               onLogout={handleLogout}
               onRefresh={() => {
                 checkSession();

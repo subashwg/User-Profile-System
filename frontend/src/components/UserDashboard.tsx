@@ -21,9 +21,16 @@ interface UserDashboardProps {
   apiUrl: string;
   onLogout: () => void;
   onRefresh: () => void;
+  onViewPublicProfile?: (username: string) => void;
 }
 
-export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: UserDashboardProps) {
+export default function UserDashboard({
+  user,
+  apiUrl,
+  onLogout,
+  onRefresh,
+  onViewPublicProfile,
+}: UserDashboardProps) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
@@ -160,13 +167,31 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
             <p className="dashboard-subtitle" style={{ margin: '2px 0 0 0' }}>Authenticated via secure session cookie</p>
           </div>
         </div>
-        <button
-          className="btn btn-secondary"
-          onClick={handleLogout}
-          disabled={loggingOut}
-        >
-          {loggingOut ? 'Logging out...' : 'Log out'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {user.username && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: '0.85rem', padding: '7px 14px' }}
+              onClick={() => {
+                if (onViewPublicProfile) {
+                  onViewPublicProfile(user.username!);
+                } else {
+                  window.location.href = `/@${user.username}`;
+                }
+              }}
+            >
+              🌐 View Profile
+            </button>
+          )}
+          <button
+            className="btn btn-secondary"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? 'Logging out...' : 'Log out'}
+          </button>
+        </div>
       </div>
 
       {!user.email_verified && (
@@ -231,7 +256,24 @@ export default function UserDashboard({ user, apiUrl, onLogout, onRefresh }: Use
             {user.username ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 <code style={{ color: 'var(--accent)', fontWeight: 600 }}>@{user.username}</code>
-                <span className="badge badge-success">Live (/@{user.username})</span>
+                <button
+                  type="button"
+                  className="badge badge-success"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                  onClick={() => {
+                    if (onViewPublicProfile) {
+                      onViewPublicProfile(user.username!);
+                    } else {
+                      window.location.href = `/@${user.username}`;
+                    }
+                  }}
+                >
+                  Live (/@{user.username})
+                </button>
               </span>
             ) : (
               'Not set yet'

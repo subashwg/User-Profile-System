@@ -52,6 +52,58 @@ export default function ProfileBasicsEditor({
   const [avatarNotice, setAvatarNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Publishing states
+  const [publishing, setPublishing] = useState(false);
+  const [publishNotice, setPublishNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublishNotice(null);
+    try {
+      const res = await fetch(`${apiUrl}/profile/me/publish`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to publish profile');
+      }
+      setStatus('published');
+      setPublishNotice({
+        type: 'success',
+        message: 'Profile is now published and publicly visible!',
+      });
+    } catch (e) {
+      setPublishNotice({ type: 'error', message: (e as Error).message });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    setPublishing(true);
+    setPublishNotice(null);
+    try {
+      const res = await fetch(`${apiUrl}/profile/me/unpublish`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to unpublish profile');
+      }
+      setStatus('draft');
+      setPublishNotice({
+        type: 'success',
+        message: 'Profile has been unpublished and reverted to draft.',
+      });
+    } catch (e) {
+      setPublishNotice({ type: 'error', message: (e as Error).message });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     const fetchProfile = async () => {
@@ -255,6 +307,82 @@ export default function ProfileBasicsEditor({
           Name & username managed in Account Settings
         </span>
       </div>
+
+      {/* Publishing Status & Action Card */}
+      <div
+        style={{
+          border: status === 'published' ? '1px solid #10b981' : '1px solid var(--border)',
+          borderRadius: '10px',
+          padding: '16px',
+          marginBottom: '24px',
+          background: status === 'published' ? 'rgba(16, 185, 129, 0.05)' : 'var(--code-bg)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.1rem' }}>{status === 'published' ? '🌐' : '🔒'}</span>
+            <strong style={{ color: 'var(--text-h)', fontSize: '0.95rem' }}>
+              {status === 'published' ? 'Profile is Public' : 'Profile is Draft'}
+            </strong>
+            <span className={`badge ${status === 'published' ? 'badge-success' : 'badge-warning'}`}>
+              {status.toUpperCase()}
+            </span>
+          </div>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text)' }}>
+            {status === 'published'
+              ? `Live at /@${user.username || 'username'}. Visitors can view your roles, skills, and portfolio.`
+              : 'Drafts are hidden from search engines and visitors. Requires a headline and at least 1 role to publish.'}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {user.username && (
+            <a
+              href={`/@${user.username}`}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.82rem', padding: '6px 14px', textDecoration: 'none' }}
+            >
+              👁 View Profile
+            </a>
+          )}
+          {status === 'draft' ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+              disabled={publishing}
+              onClick={handlePublish}
+            >
+              {publishing ? 'Publishing...' : '🚀 Publish Profile'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: '0.82rem', padding: '6px 14px', color: '#ef4444' }}
+              disabled={publishing}
+              onClick={handleUnpublish}
+            >
+              {publishing ? 'Updating...' : 'Unpublish'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {publishNotice && (
+        <div
+          className={`alert ${publishNotice.type === 'success' ? 'alert-info' : 'alert-error'}`}
+          style={{ marginBottom: '16px' }}
+        >
+          <span>{publishNotice.type === 'success' ? '✅' : '⚠️'}</span>
+          <div>{publishNotice.message}</div>
+        </div>
+      )}
 
       {/* Avatar Management Card */}
       <div

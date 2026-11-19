@@ -61,6 +61,11 @@ export class MailService {
       `[EMAIL VERIFICATION]\nTo: ${to}\nLink: ${verificationLink}\n` +
       `==================================================\n`);
 
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (isTest) {
+      return verificationLink;
+    }
+
     try {
       await this.transporter.sendMail({
         from: this.from,
@@ -107,6 +112,11 @@ export class MailService {
     this.logger.log(`\n==================================================\n` +
       `[PASSWORD RESET]\nTo: ${to}\nLink: ${resetLink}\n` +
       `==================================================\n`);
+
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (isTest) {
+      return resetLink;
+    }
 
     try {
       await this.transporter.sendMail({

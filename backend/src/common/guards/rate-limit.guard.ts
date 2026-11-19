@@ -18,7 +18,7 @@ export class RateLimitGuard implements CanActivate {
     const res = http.getResponse<Response>();
 
     // In test environment, only enforce rate limiting if explicitly enabled for the test
-    const isTest = process.env.NODE_ENV === 'test';
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
     const forceTestRateLimit = req.headers['x-test-rate-limit'] === 'true';
     if (isTest && !forceTestRateLimit) {
       return true;

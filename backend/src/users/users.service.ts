@@ -5,6 +5,7 @@ export const RESERVED_USERNAMES = new Set([
   'admin',
   'administrator',
   'api',
+  'app',
   'login',
   'logout',
   'signin',
@@ -37,6 +38,7 @@ export const RESERVED_USERNAMES = new Set([
   'mail',
   'dev',
   'test',
+  'www',
 ]);
 
 export const USERNAME_REGEX = /^[a-z0-9_]{3,30}$/;

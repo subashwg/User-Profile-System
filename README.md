@@ -6,6 +6,53 @@ A portfolio and profile platform built in structured, verified releases.
 
 Step 1 implements authentication (Email + Password, Google, Apple), session management, and onboarding (name and unique username).
 
+## Step 2: Profile, Roles & Skills
+
+Step 2 delivers the portfolio profile creator and public profile system:
+- **Profile Basics**: Headline (max 120 chars), short bio (max 500 chars), location (max 80 chars) with server-side length limits and HTML tag stripping.
+- **Avatar System**: Upload JPEG, PNG, or WebP with magic byte validation (max 2 MB), auto-resized to 512×512 square WebP. Replaces previous images on disk. Tiered fallbacks to Google OAuth picture or initials circle with deterministic color hashing.
+- **Avatar Storage Location**: Stored locally on disk at `backend/uploads/avatars/` via an abstracted `StorageService` interface ready for S3 migration.
+- **Roles Management**: Add up to 5 roles from presets or custom titles (max 60 chars) and descriptions (max 200 chars). Exactly one primary role supported; drag/reorder roles by position.
+- **Skills Management**: Add up to 15 skills per role (max 40 chars) with case-insensitive duplicate prevention, tag pills, reordering, and individual removal.
+- **Onboarding Step**: "What do you do?" screen during onboarding to pick up to 5 preset roles with skills preview (skippable).
+- **Public Profile (`/@<username>` or `/<username>`)**:
+  - Displays avatar, name, primary role badge, headline, location, bio, and role cards with skills pills in position order.
+  - "Portfolio coming soon" section placeholder for future project showcases.
+  - Empty states: Bio hidden for visitors (hint shown to owner); role with no skills shows title and description.
+  - Dynamic page titles (`<Name> | <Headline>`), meta description tags, and `<meta name="robots" content="noindex, nofollow">` for drafts.
+- **Draft & Published Flow**:
+  - Profiles start in `draft` mode.
+  - Drafts are invisible to visitors and search engines (returning standard 404s).
+  - Owners preview their draft with a private banner and instant "Publish Now" button.
+  - Publishing requires a headline and at least 1 role.
+  - One-click "Unpublish" to revert to draft mode.
+  - Strict privacy sanitization: public endpoints never expose emails, user IDs, or login methods.
+  - Reserved words (`app`, `www`, `api`, `admin`, `auth`, `public`, `settings`, `onboarding`) cannot be used as profile handles.
+
+### Step 2 API Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+| --- | --- | --- | --- |
+| `GET` | `/profile/me` | Fetch authenticated user's profile basics | Yes |
+| `PATCH` | `/profile/me` | Update headline, bio, location | Yes |
+| `POST` | `/profile/me/avatar` | Upload or replace avatar image (multipart/form-data) | Yes |
+| `DELETE` | `/profile/me/avatar` | Remove custom avatar | Yes |
+| `POST` | `/profile/me/publish` | Publish profile (requires headline and ≥1 role) | Yes |
+| `POST` | `/profile/me/unpublish` | Revert profile to private draft | Yes |
+| `GET` | `/roles/presets` | Get preset role titles | Yes |
+| `GET` | `/roles` | List authenticated user's roles with skills | Yes |
+| `POST` | `/roles` | Add a role (max 5) | Yes |
+| `PATCH` | `/roles/:id` | Edit role title, description, or primary flag | Yes |
+| `DELETE` | `/roles/:id` | Delete role and its skills | Yes |
+| `PUT` | `/roles/order` | Reorder all roles by position | Yes |
+| `POST` | `/roles/:id/skills` | Add skill to role (max 15) | Yes |
+| `DELETE` | `/roles/:id/skills/:skillId` | Remove skill from role | Yes |
+| `PUT` | `/roles/:id/skills/order` | Reorder role's skills | Yes |
+| `POST` | `/onboarding/roles` | Save roles selected during onboarding | Yes |
+| `GET` | `/public/:username` | Return sanitized public profile or owner draft preview | No (Session checked) |
+
+---
+
 ### Tech Stack
 - **Backend:** NestJS (TypeScript, Node.js 24)
 - **Database & ORM:** PostgreSQL + Prisma ORM

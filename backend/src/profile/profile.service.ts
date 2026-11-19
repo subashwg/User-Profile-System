@@ -1,8 +1,9 @@
 import 'multer';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { RESERVED_USERNAMES } from '../users/users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -249,6 +250,116 @@ export class ProfileService {
     return {
       avatar_url: null,
       effective_avatar_url: profile?.user?.avatar_url || null,
+    };
+  }
+
+  async publishProfile(userId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!profile || !profile.headline || profile.headline.trim().length === 0) {
+      throw new BadRequestException('A headline is required to publish your profile.');
+    }
+
+    const rolesCount = await this.prisma.role.count({
+      where: { user_id: userId },
+    });
+
+    if (rolesCount === 0) {
+      throw new BadRequestException('At least one role is required to publish your profile.');
+    }
+
+    const updated = await this.prisma.profile.update({
+      where: { user_id: userId },
+      data: {
+        status: 'published',
+        published_at: profile.published_at || new Date(),
+      },
+    });
+
+    return {
+      status: updated.status,
+      published_at: updated.published_at,
+    };
+  }
+
+  async unpublishProfile(userId: string) {
+    const updated = await this.prisma.profile.update({
+      where: { user_id: userId },
+      data: {
+        status: 'draft',
+      },
+    });
+
+    return {
+      status: updated.status,
+    };
+  }
+
+  async getPublicProfile(username: string, callerUserId?: string | null) {
+    const cleanUsername = username.trim().toLowerCase();
+
+    if (RESERVED_USERNAMES.has(cleanUsername)) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        username: { equals: cleanUsername, mode: 'insensitive' },
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        avatar_url: true,
+        profile: true,
+      },
+    });
+
+    if (!user || !user.profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const isOwner = callerUserId ? callerUserId === user.id : false;
+
+    // A draft profile is only visible to its owner
+    if (user.profile.status === 'draft' && !isOwner) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const roles = await this.prisma.role.findMany({
+      where: { user_id: user.id },
+      orderBy: { position: 'asc' },
+      include: {
+        skills: {
+          orderBy: { position: 'asc' },
+        },
+      },
+    });
+
+    return {
+      name: user.name,
+      username: user.username,
+      avatar_url: user.profile.avatar_url || user.avatar_url || null,
+      headline: user.profile.headline,
+      location: user.profile.location,
+      bio: user.profile.bio,
+      status: user.profile.status,
+      published_at: user.profile.published_at,
+      is_owner: isOwner,
+      roles: roles.map((r) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        position: r.position,
+        is_primary: r.is_primary,
+        skills: r.skills.map((s) => ({
+          id: s.id,
+          name: s.name,
+          position: s.position,
+        })),
+      })),
     };
   }
 }

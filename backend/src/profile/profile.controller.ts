@@ -69,4 +69,16 @@ export class ProfileController {
   async deleteAvatar(@Req() req: RequestWithAuth) {
     return this.profileService.deleteAvatar(req.user.id);
   }
+
+  @Post(['me/publish', 'publish'])
+  @HttpCode(HttpStatus.OK)
+  async publishProfile(@Req() req: RequestWithAuth) {
+    return this.profileService.publishProfile(req.user.id);
+  }
+
+  @Post(['me/unpublish', 'unpublish'])
+  @HttpCode(HttpStatus.OK)
+  async unpublishProfile(@Req() req: RequestWithAuth) {
+    return this.profileService.unpublishProfile(req.user.id);
+  }
 }

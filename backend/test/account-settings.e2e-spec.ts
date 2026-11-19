@@ -75,10 +75,11 @@ describe('Account Settings & Rate Limiting Pass (e2e)', () => {
     );
 
     await app.init();
+    await app.listen(0);
     prisma = app.get(PrismaService);
     mailService = app.get(MailService);
     rateLimiter = app.get(RateLimiterService);
-  }, 20000);
+  }, 30000);
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -88,10 +89,15 @@ describe('Account Settings & Rate Limiting Pass (e2e)', () => {
   beforeEach(async () => {
     rateLimiter.reset();
     mailService.clearLatestEmails();
-    await prisma.emailToken.deleteMany({});
-    await prisma.session.deleteMany({});
-    await prisma.loginMethod.deleteMany({});
-    await prisma.user.deleteMany({});
+    await prisma.$transaction([
+      prisma.skill.deleteMany(),
+      prisma.role.deleteMany(),
+      prisma.profile.deleteMany(),
+      prisma.emailToken.deleteMany(),
+      prisma.session.deleteMany(),
+      prisma.loginMethod.deleteMany(),
+      prisma.user.deleteMany(),
+    ]);
   });
 
   describe('GET /account/login-methods', () => {

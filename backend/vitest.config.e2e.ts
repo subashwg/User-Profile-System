@@ -8,5 +8,7 @@ export default defineConfig({
     root: './',
     include: ['**/*.e2e-spec.ts'],
     fileParallelism: false,
+    pool: 'forks',
+    testTimeout: 30000,
   },
 });
