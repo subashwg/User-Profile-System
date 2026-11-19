@@ -241,7 +241,7 @@ export default function PublicProfileView({
   const primaryRole = profile.roles.find((r) => r.is_primary);
 
   return (
-    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '0 16px 60px' }}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px 60px', width: '100%', boxSizing: 'border-box' }}>
       {/* Top Navigation Bar */}
       <div
         style={{
@@ -554,7 +554,14 @@ export default function PublicProfileView({
               : 'No roles listed.'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                profile.roles.length > 1 ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr',
+              gap: '16px',
+            }}
+          >
             {profile.roles.map((role) => (
               <div
                 key={role.id}

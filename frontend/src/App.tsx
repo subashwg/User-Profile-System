@@ -40,6 +40,7 @@ export default function App() {
   const [showSystemStatus, setShowSystemStatus] = useState(false);
 
   const [publicUsername, setPublicUsername] = useState<string | null>(null);
+  const [dashboardMode, setDashboardMode] = useState<'view' | 'edit'>('view');
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -181,12 +182,16 @@ export default function App() {
     }
   };
 
+  const isWideView = Boolean(publicUsername || (currentUser && currentUser.onboarding_completed));
+
   return (
-    <div className="app-container">
-      <header className="header-section">
-        <h1 className="app-title">Portfolio Profile System</h1>
-        <p className="app-subtitle">Step 2: Profile, Roles &amp; Skills</p>
-      </header>
+    <div className={`app-container ${isWideView ? 'app-container-wide' : 'app-container-auth'}`}>
+      {!isWideView && (
+        <header className="header-section">
+          <h1 className="app-title">Portfolio Profile System</h1>
+          <p className="app-subtitle">Step 2: Profile, Roles &amp; Skills</p>
+        </header>
+      )}
 
       {notice && (
         <div className={`alert ${notice.type === 'success' ? 'alert-info' : 'alert-error'}`} style={{ marginBottom: '20px' }}>
@@ -211,10 +216,12 @@ export default function App() {
             onNavigateHome={() => {
               window.history.pushState({}, '', '/');
               setPublicUsername(null);
+              setDashboardMode('view');
             }}
             onEditProfile={() => {
               window.history.pushState({}, '', '/');
               setPublicUsername(null);
+              setDashboardMode('edit');
             }}
           />
         ) : authLoading ? (
@@ -251,6 +258,7 @@ export default function App() {
             <UserDashboard
               user={currentUser}
               apiUrl={apiUrl}
+              initialMode={dashboardMode}
               onViewPublicProfile={(u: string) => {
                 window.history.pushState({}, '', `/@${u}`);
                 setPublicUsername(u);
