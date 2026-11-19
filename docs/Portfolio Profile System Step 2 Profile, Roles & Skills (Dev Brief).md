@@ -215,14 +215,14 @@ The Step 1 security rules still apply. These are the extra rules for Step 2.
 
 Build in eight small releases, one at a time. Finish, test and commit each before starting the next.
 
-- [ ] 1\. Database: Profile, Role and Skill tables and the first migration; create an empty Profile for every user who already has an account
-- [ ] 2\. Profile basics: GET and PATCH /profile/me with validation and the character limits
-- [ ] 3\. Avatar: upload, resize, replace, remove, initials fallback, Google photo fallback
-- [ ] 4\. Roles: presets endpoint, add, edit, delete, primary role, reorder, limit of 5
-- [ ] 5\. Skills: add, remove, reorder, limits and duplicate checks
-- [ ] 6\. Onboarding screen "What do you do?" with POST /onboarding/roles, skippable
-- [ ] 7\. Public profile: GET /public/:username, the `/<username>` page, draft and published, owner preview, publish and unpublish, reserved usernames
-- [ ] 8\. Profile editor screen, page title and sharing tags, tests and the ownership and privacy checks
+- [x] 1\. Database: Profile, Role and Skill tables and the first migration; create an empty Profile for every user who already has an account
+- [x] 2\. Profile basics: GET and PATCH /profile/me with validation and the character limits
+- [x] 3\. Avatar: upload, resize, replace, remove, initials fallback, Google photo fallback
+- [x] 4\. Roles: presets endpoint, add, edit, delete, primary role, reorder, limit of 5
+- [x] 5\. Skills: add, remove, reorder, limits and duplicate checks
+- [x] 6\. Onboarding screen "What do you do?" with POST /onboarding/roles, skippable
+- [x] 7\. Public profile: GET /public/:username, the `/<username>` page, draft and published, owner preview, publish and unpublish, reserved usernames
+- [x] 8\. Profile editor screen, page title and sharing tags, tests and the ownership and privacy checks
 
 For each release, write tests for the happy path and the main failure cases: someone else's role id, a sixth role, a duplicate skill, a draft opened by a stranger, an oversized or fake image file.
 
@@ -230,18 +230,18 @@ For each release, write tests for the happy path and the main failure cases: som
 
 Step 2 is finished when every item below is true and tested.
 
-- [ ] A new user can pick roles during onboarding, or skip and add them later
-- [ ] A user can edit headline, bio and location with the limits enforced
-- [ ] A user can upload, replace and remove an avatar, and a fake or oversized file is rejected
-- [ ] A user can add up to 5 roles, reorder them and change the primary role
-- [ ] A user can add and remove skills under each role, with no duplicates
-- [ ] The public page at the user's username shows avatar, name, headline, location, bio and role cards
-- [ ] A draft is visible only to its owner; strangers get the same 404 as for an unknown username
-- [ ] Publish needs a headline and at least one role; unpublish works
-- [ ] Reserved words cannot be used as usernames
-- [ ] The public response contains no email or internal data
-- [ ] One user cannot read or change another user's roles or skills
-- [ ] The README is updated with how to run Step 2 and where uploaded files are stored
+- [x] A new user can pick roles during onboarding, or skip and add them later
+- [x] A user can edit headline, bio and location with the limits enforced
+- [x] A user can upload, replace and remove an avatar, and a fake or oversized file is rejected
+- [x] A user can add up to 5 roles, reorder them and change the primary role
+- [x] A user can add and remove skills under each role, with no duplicates
+- [x] The public page at the user's username shows avatar, name, headline, location, bio and role cards
+- [x] A draft is visible only to its owner; strangers get the same 404 as for an unknown username
+- [x] Publish needs a headline and at least one role; unpublish works
+- [x] Reserved words cannot be used as usernames
+- [x] The public response contains no email or internal data
+- [x] One user cannot read or change another user's roles or skills
+- [x] The README is updated with how to run Step 2 and where uploaded files are stored
 
 ## Starter prompt for Antigravity
 
