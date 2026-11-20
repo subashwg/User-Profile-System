@@ -322,4 +322,66 @@ export class ItemsService {
 
     return { success: true, message: 'Portfolio item deleted successfully' };
   }
+
+  /**
+   * Reorder items within a role
+   * Enforces:
+   * - Role must belong to user (otherwise 404)
+   * - item_ids must contain all items of that role exactly once without duplicates
+   */
+  async reorderRoleItems(userId: string, roleId: string, itemIds: string[]) {
+    const role = await this.prisma.role.findFirst({
+      where: { id: roleId, user_id: userId },
+    });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    const uniqueProvidedIds = new Set(itemIds);
+    if (uniqueProvidedIds.size !== itemIds.length) {
+      throw new BadRequestException('Duplicate item IDs provided in reorder list.');
+    }
+
+    const currentItems = await this.prisma.portfolioItem.findMany({
+      where: { role_id: roleId, user_id: userId },
+      select: { id: true },
+    });
+
+    if (currentItems.length !== itemIds.length) {
+      throw new BadRequestException(
+        'Item IDs list must contain every item ID of this role exactly once.',
+      );
+    }
+
+    const currentIdsSet = new Set(currentItems.map((item) => item.id));
+    for (const id of itemIds) {
+      if (!currentIdsSet.has(id)) {
+        throw new BadRequestException(
+          'Item IDs list must contain every item ID of this role exactly once.',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(
+      itemIds.map((id, index) =>
+        this.prisma.portfolioItem.update({
+          where: { id },
+          data: { position: index },
+        }),
+      ),
+    );
+
+    return this.prisma.portfolioItem.findMany({
+      where: { role_id: roleId, user_id: userId },
+      orderBy: { position: 'asc' },
+      include: {
+        role: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
 }

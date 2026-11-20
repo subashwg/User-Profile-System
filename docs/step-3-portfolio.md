@@ -288,7 +288,7 @@ Build in ten small releases, one at a time. Finish, test and commit each before 
 - [x] 2\. Database: Portfolio item table, kind enum and migration; update the Step 2 role delete to remove items
 - [x] 3\. Items CRUD without previews: create, list, edit, delete, kind, role, limits, duplicate-link check
 - [x] 4\. The portfolio card component with all kinds, the tint fallback and every state in the Design direction, shown first on a simple test page
-- [ ] 5\. Feature, hide, reorder and move between roles, with the 5-featured limit
+- [x] 5\. Feature, hide, reorder and move between roles, with the 5-featured limit
 - [ ] 6\. Link preview: safe fetching, YouTube shortcut, title, description and cover suggestions, failure message
 - [ ] 7\. Cover upload and storing of found covers, with resizing
 - [ ] 8\. Add and edit work screens with the live card preview, and the Work list screen
