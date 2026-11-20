@@ -15,8 +15,10 @@ import {
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard.js';
 import { CreateItemDto } from './dto/create-item.dto.js';
+import { PreviewItemDto } from './dto/preview-item.dto.js';
 import { UpdateItemDto } from './dto/update-item.dto.js';
 import { ItemsService } from './items.service.js';
+import { PreviewService } from './services/preview.service.js';
 
 interface RequestWithAuth extends Request {
   user: {
@@ -34,7 +36,19 @@ interface RequestWithAuth extends Request {
 @Controller('items')
 @UseGuards(SessionAuthGuard)
 export class ItemsController {
-  constructor(private readonly itemsService: ItemsService) {}
+  constructor(
+    private readonly itemsService: ItemsService,
+    private readonly previewService: PreviewService,
+  ) {}
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  async previewLink(
+    @Req() req: RequestWithAuth,
+    @Body() dto: PreviewItemDto,
+  ) {
+    return this.previewService.getPreview(req.user.id, dto.url);
+  }
 
   @Get()
   async getItems(
