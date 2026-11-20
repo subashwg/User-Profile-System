@@ -277,3 +277,25 @@
     background: var(--color-border);
   }
 }
+
+/* ==========================================================================
+   Portfolio Card Styles
+   ========================================================================== */
+.portfolio-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.portfolio-card-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-card);
+}
+
+.portfolio-card-hidden {
+  opacity: 0.6;
+  filter: grayscale(0.2);
+}

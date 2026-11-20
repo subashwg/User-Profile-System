@@ -5,6 +5,8 @@ import { KindBadge, StatusBadge, type PortfolioKind } from './Badge.js';
 import CardShell from './CardShell.js';
 import SkeletonCard from './Skeleton.js';
 import EmptyStateCard from './EmptyStateCard.js';
+import PortfolioCard from '../portfolio/PortfolioCard.js';
+import PortfolioCardSkeleton from '../portfolio/PortfolioCardSkeleton.js';
 
 export default function DesignShowcase({ onBack }: { onBack?: () => void }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -274,6 +276,169 @@ export default function DesignShowcase({ onBack }: { onBack?: () => void }) {
             actionLabel="+ Add Work Item"
             onAction={() => alert('Add work clicked!')}
           />
+        </section>
+
+        {/* Section 6: Item 4 - Portfolio Card Component & States */}
+        <section style={{ marginBottom: '64px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h2 className="type-heading" style={{ margin: '0 0 6px 0' }}>
+              6. Portfolio Card Component &amp; States (Build-Order Item 4)
+            </h2>
+            <p className="type-body-muted" style={{ margin: 0 }}>
+              Production component with 16:9 covers, kind badges, 2-line title/description clamp,
+              tint fallbacks, broken cover resilience, status badges, and responsive grid layout.
+            </p>
+          </div>
+
+          {/* Subheader: All 6 Kinds with Covers */}
+          <h3 className="type-card-title" style={{ marginBottom: '16px', color: 'var(--color-accent)' }}>
+            A. All 6 Kinds with Covers &amp; CTAs
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+              gap: '24px',
+              marginBottom: '40px',
+            }}
+          >
+            <PortfolioCard
+              kind="video"
+              title="Building High-Performance Web Applications in 2026"
+              description="A practical guide to bundle optimization, streaming SSR, and edge computing patterns."
+              url="https://youtube.com/watch?v=sample1"
+              cover_url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+              source_site="YouTube"
+              published_on="2026-03-10"
+              roleTitle="Content Creator"
+              is_featured={true}
+            />
+
+            <PortfolioCard
+              kind="article"
+              title="State of Distributed Systems: Lessons from 5 Years of Production"
+              description="How we scaled message queues, handled partitions, and eliminated single points of failure."
+              url="https://medium.com/@author/distributed-systems"
+              cover_url="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=80"
+              source_site="Medium"
+              published_on="2026-02-18"
+              roleTitle="Lead Architect"
+            />
+
+            <PortfolioCard
+              kind="course"
+              title="Full-Stack TypeScript Masterclass: Zero to Production"
+              description="Comprehensive 40-hour hands-on curriculum covering NestJS, React, and PostgreSQL."
+              url="https://example.com/course/typescript"
+              cover_url="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80"
+              source_site="Educative"
+              published_on="2026-01-05"
+              roleTitle="Instructor"
+            />
+
+            <PortfolioCard
+              kind="project"
+              title="HyperFast CLI: Blazing fast developer tooling in Rust"
+              description="Cross-platform command line utility for continuous performance benchmarking and profiling."
+              url="https://github.com/developer/hyperfast"
+              cover_url="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
+              source_site="GitHub"
+              published_on="2025-11-20"
+              roleTitle="Systems Engineer"
+            />
+
+            <PortfolioCard
+              kind="product"
+              title="DevMetrics Pro: Observability platform for indie founders"
+              description="All-in-one real-time analytics, uptime checks, and automated error tracking in one lightweight script."
+              url="https://devmetricspro.com"
+              cover_url="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
+              source_site="ProductHunt"
+              published_on="2025-09-15"
+              roleTitle="Founder"
+            />
+
+            <PortfolioCard
+              kind="other"
+              title="Open Source Community & Architecture Guidelines"
+              description="Standard operating procedures, governance guidelines, and design documentation."
+              url="https://notion.so/guidelines"
+              cover_url="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80"
+              source_site="Notion"
+              published_on="2025-08-01"
+              roleTitle="Community Lead"
+            />
+          </div>
+
+          {/* Subheader: Tint Fallback when No Cover is Provided */}
+          <h3 className="type-card-title" style={{ marginBottom: '16px', color: 'var(--color-accent)' }}>
+            B. Kind Tint Fallback (No Cover Provided)
+          </h3>
+          <p className="type-caption" style={{ marginBottom: '16px' }}>
+            When an item has no cover image, it displays a colored tint block matching the kind with its centered icon.
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+              gap: '24px',
+              marginBottom: '40px',
+            }}
+          >
+            {kinds.map((k) => (
+              <PortfolioCard
+                key={`tint-${k}`}
+                kind={k}
+                title={`${k.charAt(0).toUpperCase() + k.slice(1)} without cover image`}
+                description="Demonstrating clean zero-hole kind tint fallback with centered icon and proper contrast."
+                url="https://example.com"
+                cover_url={null}
+                source_site="Web"
+                published_on="2026-03-01"
+                roleTitle="Creator"
+              />
+            ))}
+          </div>
+
+          {/* Subheader: Broken Image Fallback, Hidden Item & Loading Skeleton */}
+          <h3 className="type-card-title" style={{ marginBottom: '16px', color: 'var(--color-accent)' }}>
+            C. Card States: Broken Cover, Hidden Item &amp; Skeleton Loading
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+              gap: '24px',
+            }}
+          >
+            {/* Broken Cover Fallback Simulation */}
+            <PortfolioCard
+              kind="video"
+              title="Broken Cover Image Simulation"
+              description="When image fails to load (HTTP 404 or invalid format), it gracefully reverts to the kind tint fallback."
+              url="https://example.com/broken"
+              cover_url="https://invalid-non-existent-domain-12345.com/broken.jpg"
+              source_site="Simulated Site"
+              published_on="2026-03-01"
+              roleTitle="Error Resilience"
+            />
+
+            {/* Hidden Item State (Editor only: 50% opacity & Hidden badge) */}
+            <PortfolioCard
+              kind="article"
+              title="Draft Article (Hidden from Public Page)"
+              description="Hidden items are displayed at 50% opacity with an eye-off icon and the word 'Hidden' in the editor."
+              url="https://example.com/draft"
+              cover_url="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&auto=format&fit=crop&q=80"
+              source_site="Medium"
+              published_on="2026-03-01"
+              roleTitle="Technical Writer"
+              is_hidden={true}
+            />
+
+            {/* Skeleton Loading Card */}
+            <PortfolioCardSkeleton />
+          </div>
         </section>
       </div>
     </div>
