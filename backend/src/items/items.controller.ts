@@ -1,4 +1,6 @@
+import 'multer';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,8 +12,11 @@ import {
   Post,
   Query,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard.js';
 import { CreateItemDto } from './dto/create-item.dto.js';
@@ -92,5 +97,29 @@ export class ItemsController {
     @Param('id') id: string,
   ) {
     return this.itemsService.deleteItem(req.user.id, id);
+  }
+
+  @Post(':id/cover')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(AnyFilesInterceptor())
+  async uploadCover(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const file = files?.[0];
+    if (!file) {
+      throw new BadRequestException('Cover image file is required');
+    }
+    return this.itemsService.uploadCover(req.user.id, id, file);
+  }
+
+  @Delete(':id/cover')
+  @HttpCode(HttpStatus.OK)
+  async deleteCover(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+  ) {
+    return this.itemsService.deleteCover(req.user.id, id);
   }
 }

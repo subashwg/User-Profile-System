@@ -5,13 +5,19 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StorageService } from '../storage/storage.service.js';
 import { CreateItemDto } from './dto/create-item.dto.js';
 import { UpdateItemDto } from './dto/update-item.dto.js';
+import { CoverService } from './services/cover.service.js';
 import { canonicalizeUrl, deriveSourceSite } from './utils/url.util.js';
 
 @Injectable()
 export class ItemsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
+    private readonly coverService: CoverService,
+  ) {}
 
   /**
    * Create a portfolio item under a role
@@ -73,6 +79,24 @@ export class ItemsService {
 
       const publishedOn = dto.published_on ? new Date(dto.published_on) : null;
 
+      let finalCoverUrl = dto.cover_url ? dto.cover_url.trim() : null;
+      let finalCoverSource = dto.cover_source ?? 'none';
+
+      // If cover came from link preview and is an external URL, download & store locally
+      if (
+        finalCoverSource === 'link' &&
+        finalCoverUrl &&
+        (finalCoverUrl.startsWith('http://') || finalCoverUrl.startsWith('https://'))
+      ) {
+        const localCover = await this.coverService.downloadAndProcessRemoteCover(finalCoverUrl);
+        if (localCover) {
+          finalCoverUrl = localCover.coverUrl;
+        } else {
+          finalCoverUrl = null;
+          finalCoverSource = 'none';
+        }
+      }
+
       return tx.portfolioItem.create({
         data: {
           user_id: userId,
@@ -81,8 +105,8 @@ export class ItemsService {
           title: dto.title.trim(),
           description: dto.description ? dto.description.trim() : null,
           url: dto.url.trim(),
-          cover_url: dto.cover_url ? dto.cover_url.trim() : null,
-          cover_source: dto.cover_source ?? 'none',
+          cover_url: finalCoverUrl,
+          cover_source: finalCoverSource,
           source_site: sourceSite,
           published_on: publishedOn,
           is_featured: !!dto.is_featured,
@@ -266,9 +290,31 @@ export class ItemsService {
         data.source_site = dto.source_site ? dto.source_site.trim() : null;
       }
       if (dto.cover_url !== undefined) {
-        data.cover_url = dto.cover_url ? dto.cover_url.trim() : null;
+        let finalCoverUrl = dto.cover_url ? dto.cover_url.trim() : null;
+        let finalCoverSource = dto.cover_source ?? item.cover_source;
+
+        if (
+          finalCoverSource === 'link' &&
+          finalCoverUrl &&
+          (finalCoverUrl.startsWith('http://') || finalCoverUrl.startsWith('https://'))
+        ) {
+          if (item.cover_url?.includes('/uploads/covers/')) {
+            await this.storageService.deleteCover(item.cover_url);
+          }
+          const localCover = await this.coverService.downloadAndProcessRemoteCover(finalCoverUrl);
+          if (localCover) {
+            finalCoverUrl = localCover.coverUrl;
+          } else {
+            finalCoverUrl = null;
+            finalCoverSource = 'none';
+          }
+        }
+        data.cover_url = finalCoverUrl;
+        data.cover_source = finalCoverSource;
+      } else if (dto.cover_source !== undefined) {
+        data.cover_source = dto.cover_source;
       }
-      if (dto.cover_source !== undefined) data.cover_source = dto.cover_source;
+
       if (dto.published_on !== undefined) {
         data.published_on = dto.published_on ? new Date(dto.published_on) : null;
       }
@@ -320,7 +366,84 @@ export class ItemsService {
       }
     });
 
+    if (item.cover_url?.includes('/uploads/covers/')) {
+      await this.storageService.deleteCover(item.cover_url);
+    }
+
     return { success: true, message: 'Portfolio item deleted successfully' };
+  }
+
+  /**
+   * Upload and crop 16:9 cover image (1280x720 and 640x360 WebP)
+   */
+  async uploadCover(userId: string, itemId: string, file: Express.Multer.File) {
+    const item = await this.prisma.portfolioItem.findFirst({
+      where: { id: itemId, user_id: userId },
+    });
+    if (!item) {
+      throw new NotFoundException('Portfolio item not found');
+    }
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException('Cover image file is required');
+    }
+
+    const { fullBuffer, thumbBuffer } = await this.coverService.processCoverImage(file.buffer);
+
+    // Delete old local cover if exists
+    if (item.cover_url?.includes('/uploads/covers/')) {
+      await this.storageService.deleteCover(item.cover_url);
+    }
+
+    const saved = await this.storageService.saveCover(fullBuffer, thumbBuffer);
+
+    return this.prisma.portfolioItem.update({
+      where: { id: itemId },
+      data: {
+        cover_url: saved.coverUrl,
+        cover_source: 'upload',
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Delete cover image
+   */
+  async deleteCover(userId: string, itemId: string) {
+    const item = await this.prisma.portfolioItem.findFirst({
+      where: { id: itemId, user_id: userId },
+    });
+    if (!item) {
+      throw new NotFoundException('Portfolio item not found');
+    }
+
+    if (item.cover_url?.includes('/uploads/covers/')) {
+      await this.storageService.deleteCover(item.cover_url);
+    }
+
+    return this.prisma.portfolioItem.update({
+      where: { id: itemId },
+      data: {
+        cover_url: null,
+        cover_source: 'none',
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
   }
 
   /**
