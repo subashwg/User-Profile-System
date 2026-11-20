@@ -45,6 +45,7 @@ model User {
   email_tokens         EmailToken[]
   profile              Profile?
   roles                Role[]
+  portfolio_items      PortfolioItem[]
 
   @@map("users")
 }
@@ -115,6 +116,7 @@ model Role {
   created_at  DateTime @default(now()) @map("created_at")
   updated_at  DateTime @updatedAt @map("updated_at")
   skills      Skill[]
+  items       PortfolioItem[]
 
   @@map("roles")
 }
@@ -129,4 +131,48 @@ model Skill {
   updated_at DateTime @updatedAt @map("updated_at")
 
   @@map("skills")
+}
+
+enum PortfolioItemKind {
+  video
+  article
+  course
+  project
+  product
+  other
+
+  @@map("portfolio_item_kind")
+}
+
+enum CoverSource {
+  none
+  link
+  upload
+
+  @@map("cover_source")
+}
+
+model PortfolioItem {
+  id           String            @id @default(uuid())
+  user_id      String            @map("user_id")
+  user         User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role_id      String            @map("role_id")
+  role         Role              @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  kind         PortfolioItemKind
+  title        String            @map("title")
+  description  String?           @map("description")
+  url          String            @map("url")
+  cover_url    String?           @map("cover_url")
+  cover_source CoverSource       @default(none) @map("cover_source")
+  source_site  String?           @map("source_site")
+  published_on DateTime?         @map("published_on")
+  is_featured  Boolean           @default(false) @map("is_featured")
+  is_hidden    Boolean           @default(false) @map("is_hidden")
+  position     Int               @default(0) @map("position")
+  created_at   DateTime          @default(now()) @map("created_at")
+  updated_at   DateTime          @updatedAt @map("updated_at")
+
+  @@index([user_id])
+  @@index([role_id])
+  @@map("portfolio_items")
 }

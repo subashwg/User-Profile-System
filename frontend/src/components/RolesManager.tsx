@@ -791,7 +791,7 @@ export default function RolesManager({ apiUrl, onRolesUpdated }: RolesManagerPro
                     ⚠️ Delete role "{role.title}"?
                   </p>
                   <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#b91c1c' }}>
-                    All {role.skills.length} skills under this role will also be permanently deleted.
+                    All skills and attached portfolio work items under this role will also be permanently deleted.
                   </p>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                     <button

@@ -285,7 +285,7 @@ The Step 1 and Step 2 rules still apply. These are the extra rules for Step 3. T
 Build in ten small releases, one at a time. Finish, test and commit each before starting the next. The design tokens come first so every later screen uses them.
 
 - [x] 1\. Design foundation: colour, type, spacing and radius tokens (with dark mode values), plus the shared components: button, chip, badge, card shell, skeleton, empty-state card, focus ring
-- [ ] 2\. Database: Portfolio item table, kind enum and migration; update the Step 2 role delete to remove items
+- [x] 2\. Database: Portfolio item table, kind enum and migration; update the Step 2 role delete to remove items
 - [ ] 3\. Items CRUD without previews: create, list, edit, delete, kind, role, limits, duplicate-link check
 - [ ] 4\. The portfolio card component with all kinds, the tint fallback and every state in the Design direction, shown first on a simple test page
 - [ ] 5\. Feature, hide, reorder and move between roles, with the 5-featured limit
