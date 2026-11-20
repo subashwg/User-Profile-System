@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CommonModule } from './common/common.module.js';
 import { validate } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { ItemsModule } from './items/items.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -35,6 +36,7 @@ import { UsersModule } from './users/users.module.js';
     ProfileModule,
     RolesModule,
     SkillsModule,
+    ItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
