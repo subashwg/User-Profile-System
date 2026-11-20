@@ -6,6 +6,7 @@ import PublicProfileView from './components/PublicProfileView.js';
 import RegisterForm from './components/RegisterForm.js';
 import ResetPasswordForm from './components/ResetPasswordForm.js';
 import UserDashboard from './components/UserDashboard.js';
+import DesignShowcase from './components/ui/DesignShowcase.js';
 
 interface HealthData {
   status: string;
@@ -41,11 +42,18 @@ export default function App() {
 
   const [publicUsername, setPublicUsername] = useState<string | null>(null);
   const [dashboardMode, setDashboardMode] = useState<'view' | 'edit'>('view');
+  const [showDesignShowcase, setShowDesignShowcase] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   const parseRoute = useCallback(() => {
     const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    if (path === '/design' || params.get('design') === 'true') {
+      setShowDesignShowcase(true);
+      return;
+    }
+    setShowDesignShowcase(false);
     if (path.startsWith('/@')) {
       const u = path.slice(2).trim();
       setPublicUsername(u || null);
@@ -209,7 +217,15 @@ export default function App() {
       )}
 
       <main className="main-content">
-        {publicUsername ? (
+        {showDesignShowcase ? (
+          <DesignShowcase
+            onBack={() => {
+              setShowDesignShowcase(false);
+              window.history.pushState({}, '', '/');
+              parseRoute();
+            }}
+          />
+        ) : publicUsername ? (
           <PublicProfileView
             username={publicUsername}
             apiUrl={apiUrl}
@@ -344,15 +360,30 @@ export default function App() {
       </main>
 
       <footer className="footer-section">
-        <div className="system-pill" onClick={() => setShowSystemStatus(!showSystemStatus)}>
-          <span className="dot dot-green"></span>
-          <span>System Live</span>
-          <span className="badge badge-success" style={{ marginLeft: '4px' }}>
-            DB {health?.database?.toUpperCase() || 'CHECKING'}
-          </span>
-          <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text)' }}>
-            {showSystemStatus ? '▲ Hide Status' : '▼ View System & DB Info'}
-          </span>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="system-pill" onClick={() => setShowSystemStatus(!showSystemStatus)}>
+            <span className="dot dot-green"></span>
+            <span>System Live</span>
+            <span className="badge badge-success" style={{ marginLeft: '4px' }}>
+              DB {health?.database?.toUpperCase() || 'CHECKING'}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text)' }}>
+              {showSystemStatus ? '▲ Hide' : '▼ Info'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="system-pill"
+            style={{ cursor: 'pointer', background: 'var(--color-surface)', borderColor: 'var(--color-accent)' }}
+            onClick={() => {
+              setShowDesignShowcase(true);
+              window.history.pushState({}, '', '/design');
+            }}
+          >
+            <span>🎨</span>
+            <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>Design Tokens &amp; UI (Step 3)</span>
+          </button>
         </div>
 
         {showSystemStatus && health && (

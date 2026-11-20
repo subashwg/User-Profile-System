@@ -1,0 +1,279 @@
+/* ==========================================================================
+   PORTFOLIO PROFILE SYSTEM - STEP 3 DESIGN TOKENS
+   Source: docs/step-3-portfolio.md (Design Direction)
+   ========================================================================== */
+
+:root {
+  /* Colour Tokens - Light Theme Default */
+  --color-background: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-text: #16181D;
+  --color-text-muted: #5B6270;
+  --color-border: #E6E4DE;
+  --color-border-strong: #8C919B;
+  --color-accent: #0E7C7B;
+  --color-accent-soft: #E3F3F2;
+  --color-accent-strong: #0A5F5E;
+  --color-danger: #B42318;
+
+  /* Kind Tints - Light */
+  --kind-video-fill: #FDE7E1;
+  --kind-video-icon: #C2412D;
+
+  --kind-article-fill: #E8EEFB;
+  --kind-article-icon: #3156B8;
+
+  --kind-course-fill: #FFF1D6;
+  --kind-course-icon: #A86400;
+
+  --kind-project-fill: #E6F4EA;
+  --kind-project-icon: #1E7A3E;
+
+  --kind-product-fill: #F3E8FB;
+  --kind-product-icon: #7A3FB0;
+
+  --kind-other-fill: #EEEEEA;
+  --kind-other-icon: #5B6270;
+
+  /* Shadows & Depth */
+  --shadow-card-rest: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Corner Radii */
+  --radius-card: 16px;
+  --radius-interactive: 10px;
+  --radius-pill: 9999px;
+  --radius-circle: 50%;
+
+  /* Spacing Steps (4px base) */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* Typography Scale */
+  --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* Focus Ring */
+  --focus-ring: 2px solid var(--color-accent);
+  --focus-offset: 2px;
+}
+
+/* Dark Theme Overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0F1115;
+    --color-surface: #171A20;
+    --color-text: #F2F3F5;
+    --color-text-muted: #A0A7B4;
+    --color-border: #2A2E37;
+    --color-border-strong: #5B6270;
+    --color-accent: #3CC6C4;
+    --color-accent-soft: #12302F;
+    --color-accent-strong: #7EE0DE;
+    --color-danger: #F97066;
+
+    /* Kind Tints - Dark */
+    --kind-video-fill: #2D1612;
+    --kind-video-icon: #F07A65;
+
+    --kind-article-fill: #152238;
+    --kind-article-icon: #7AA2F7;
+
+    --kind-course-fill: #332208;
+    --kind-course-icon: #E6A740;
+
+    --kind-project-fill: #112E1C;
+    --kind-project-icon: #57B879;
+
+    --kind-product-fill: #281636;
+    --kind-product-icon: #BF83F7;
+
+    --kind-other-fill: #24262B;
+    --kind-other-icon: #9EA5B3;
+
+    --shadow-card-rest: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-card-hover: 0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Explicit data-theme support for testing/manual toggle */
+[data-theme="dark"] {
+  --color-background: #0F1115;
+  --color-surface: #171A20;
+  --color-text: #F2F3F5;
+  --color-text-muted: #A0A7B4;
+  --color-border: #2A2E37;
+  --color-border-strong: #5B6270;
+  --color-accent: #3CC6C4;
+  --color-accent-soft: #12302F;
+  --color-accent-strong: #7EE0DE;
+  --color-danger: #F97066;
+
+  --kind-video-fill: #2D1612;
+  --kind-video-icon: #F07A65;
+
+  --kind-article-fill: #152238;
+  --kind-article-icon: #7AA2F7;
+
+  --kind-course-fill: #332208;
+  --kind-course-icon: #E6A740;
+
+  --kind-project-fill: #112E1C;
+  --kind-project-icon: #57B879;
+
+  --kind-product-fill: #281636;
+  --kind-product-icon: #BF83F7;
+
+  --kind-other-fill: #24262B;
+  --kind-other-icon: #9EA5B3;
+
+  --shadow-card-rest: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] {
+  --color-background: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-text: #16181D;
+  --color-text-muted: #5B6270;
+  --color-border: #E6E4DE;
+  --color-border-strong: #8C919B;
+  --color-accent: #0E7C7B;
+  --color-accent-soft: #E3F3F2;
+  --color-accent-strong: #0A5F5E;
+  --color-danger: #B42318;
+
+  --kind-video-fill: #FDE7E1;
+  --kind-video-icon: #C2412D;
+
+  --kind-article-fill: #E8EEFB;
+  --kind-article-icon: #3156B8;
+
+  --kind-course-fill: #FFF1D6;
+  --kind-course-icon: #A86400;
+
+  --kind-project-fill: #E6F4EA;
+  --kind-project-icon: #1E7A3E;
+
+  --kind-product-fill: #F3E8FB;
+  --kind-product-icon: #7A3FB0;
+
+  --kind-other-fill: #EEEEEA;
+  --kind-other-icon: #5B6270;
+}
+
+/* ==========================================================================
+   Type Scale Utilities
+   ========================================================================== */
+.type-display {
+  font-family: var(--font-family);
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 650;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 640px) {
+  .type-display {
+    font-size: 28px;
+    line-height: 36px;
+  }
+}
+
+.type-heading {
+  font-family: var(--font-family);
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 650;
+  color: var(--color-text);
+  letter-spacing: -0.015em;
+}
+
+.type-card-title {
+  font-family: var(--font-family);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.type-body {
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.type-body-muted {
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.type-small {
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.type-caption {
+  font-family: var(--font-family);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Universal Accessible Focus Ring
+   ========================================================================== */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* ==========================================================================
+   Shimmer Animation for Skeletons
+   ========================================================================== */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-border) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-effect {
+    animation: none;
+    background: var(--color-border);
+  }
+}
