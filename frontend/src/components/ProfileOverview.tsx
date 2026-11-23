@@ -41,7 +41,7 @@ interface ProfileOverviewProps {
   user: User;
   apiUrl: string;
   connectedMethods: Array<{ id: string; type: string; created_at: string }>;
-  onEditProfile: () => void;
+  onEditProfile: (tab?: 'basics' | 'roles' | 'work' | 'security') => void;
   onViewPublicProfile?: (username: string) => void;
   onLogout: () => void;
   onRefresh: () => void;
@@ -58,6 +58,10 @@ export default function ProfileOverview({
 }: ProfileOverviewProps) {
   const [profile, setProfile] = useState<ProfileBasics | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [portfolioSummary, setPortfolioSummary] = useState<{ totalItems: number; featuredCount: number }>({
+    totalItems: 0,
+    featuredCount: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -67,9 +71,10 @@ export default function ProfileOverview({
   const loadProfileData = async () => {
     setLoading(true);
     try {
-      const [profileRes, rolesRes] = await Promise.all([
+      const [profileRes, rolesRes, itemsRes] = await Promise.all([
         fetch(`${apiUrl}/profile/me`, { credentials: 'include' }),
         fetch(`${apiUrl}/roles`, { credentials: 'include' }),
+        fetch(`${apiUrl}/items`, { credentials: 'include' }),
       ]);
 
       if (profileRes.ok) {
@@ -80,6 +85,20 @@ export default function ProfileOverview({
         const rData = await rolesRes.json();
         if (Array.isArray(rData.roles)) {
           setRoles(rData.roles);
+        }
+      }
+      if (itemsRes.ok) {
+        const itemsData = await itemsRes.json();
+        if (Array.isArray(itemsData)) {
+          let count = 0;
+          let featured = 0;
+          for (const g of itemsData) {
+            if (Array.isArray(g.items)) {
+              count += g.items.length;
+              featured += g.items.filter((i: { is_featured: boolean }) => i.is_featured).length;
+            }
+          }
+          setPortfolioSummary({ totalItems: count, featuredCount: featured });
         }
       }
     } catch (e) {
@@ -164,7 +183,7 @@ export default function ProfileOverview({
           <button
             type="button"
             className="btn btn-primary overview-edit-btn"
-            onClick={onEditProfile}
+            onClick={() => onEditProfile()}
           >
             ✏️ Edit Profile
           </button>
@@ -282,7 +301,7 @@ export default function ProfileOverview({
             ) : (
               <p className="overview-placeholder-text">
                 No headline set yet.{' '}
-                <button type="button" className="link-btn" onClick={onEditProfile}>
+                <button type="button" className="link-btn" onClick={() => onEditProfile('basics')}>
                   Add a headline in Edit Mode
                 </button>
               </p>
@@ -293,7 +312,7 @@ export default function ProfileOverview({
             ) : (
               <p className="overview-placeholder-text" style={{ marginTop: '8px' }}>
                 No short bio added yet.{' '}
-                <button type="button" className="link-btn" onClick={onEditProfile}>
+                <button type="button" className="link-btn" onClick={() => onEditProfile('basics')}>
                   Add a bio in Edit Mode
                 </button>
               </p>
@@ -308,7 +327,7 @@ export default function ProfileOverview({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={onEditProfile}
+            onClick={() => onEditProfile()}
           >
             ✏️ Modify Profile Details
           </button>
@@ -333,7 +352,7 @@ export default function ProfileOverview({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={onEditProfile}
+                onClick={() => onEditProfile('roles')}
               >
                 ✏️ Manage Roles
               </button>
@@ -351,7 +370,7 @@ export default function ProfileOverview({
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={onEditProfile}
+                  onClick={() => onEditProfile('roles')}
                 >
                   + Add Your First Role
                 </button>
@@ -395,28 +414,80 @@ export default function ProfileOverview({
             )}
           </section>
 
-          {/* Portfolio Projects Showcase Placeholder */}
-          <section className="overview-card overview-portfolio-card">
-            <div className="overview-portfolio-inner">
-              <div style={{ fontSize: '2.2rem', marginBottom: '8px' }}>🎨</div>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', color: 'var(--text-h)' }}>
-                Featured Portfolio Projects
-              </h3>
-              <p
+          {/* Work & Portfolio Showcase */}
+          <section className="overview-card">
+            <div className="overview-card-header">
+              <div>
+                <h3 className="overview-card-title">
+                  <span>🎨</span> Work &amp; Portfolio Showcase
+                </h3>
+                <p className="overview-card-subtitle">
+                  {portfolioSummary.totalItems} {portfolioSummary.totalItems === 1 ? 'item' : 'items'} ·{' '}
+                  {portfolioSummary.featuredCount} featured · Displayed on your public portfolio
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onEditProfile('work')}
+              >
+                ✏️ Manage Work
+              </button>
+            </div>
+
+            {loading ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text)' }}>
+                Loading portfolio items...
+              </div>
+            ) : portfolioSummary.totalItems === 0 ? (
+              <div className="overview-empty-box">
+                <p style={{ margin: '0 0 12px 0', color: 'var(--text)' }}>
+                  You have not added any work items yet.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => onEditProfile('work')}
+                >
+                  + Add Your First Work Item
+                </button>
+              </div>
+            ) : (
+              <div
                 style={{
-                  margin: 0,
-                  fontSize: '0.88rem',
-                  color: 'var(--text)',
-                  maxWidth: '520px',
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
-                  lineHeight: 1.5,
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'var(--surface-subtle)',
+                  borderRadius: 'var(--radius-input)',
+                  flexWrap: 'wrap',
+                  gap: '12px',
                 }}
               >
-                Portfolio coming soon in Step 3. Showcase case studies, screenshots, live demo links,
-                and source repositories directly on your public page.
-              </p>
-            </div>
+                <div>
+                  <strong style={{ color: 'var(--text-h)', fontSize: '0.95rem' }}>
+                    {portfolioSummary.totalItems}{' '}
+                    {portfolioSummary.totalItems === 1
+                      ? 'project / work item'
+                      : 'projects & work items'}{' '}
+                    in your portfolio
+                  </strong>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text)' }}>
+                    {portfolioSummary.featuredCount > 0
+                      ? `${portfolioSummary.featuredCount} featured in the top carousel on your public profile.`
+                      : 'Tip: You can feature up to 5 items to show them in the prominent top carousel.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => onEditProfile('work')}
+                >
+                  View / Edit Work →
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
@@ -480,7 +551,7 @@ export default function ProfileOverview({
                 type="button"
                 className="btn btn-primary"
                 style={{ width: '100%', fontSize: '0.85rem' }}
-                onClick={onEditProfile}
+                onClick={() => onEditProfile('basics')}
               >
                 ⚙️ Publishing Settings in Editor
               </button>
@@ -537,7 +608,7 @@ export default function ProfileOverview({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={onEditProfile}
+                onClick={() => onEditProfile('security')}
               >
                 Change
               </button>

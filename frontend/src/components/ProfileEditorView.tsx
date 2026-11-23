@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ProfileBasicsEditor from './ProfileBasicsEditor.js';
 import RolesManager from './RolesManager.js';
+import WorkManager from './portfolio/WorkManager.js';
 
 interface User {
   id: string;
@@ -18,7 +19,7 @@ interface ProfileEditorViewProps {
   user: User;
   apiUrl: string;
   connectedMethods: Array<{ id: string; type: string; created_at: string }>;
-  initialTab?: 'basics' | 'roles' | 'security';
+  initialTab?: 'basics' | 'roles' | 'work' | 'security';
   onBackToOverview: () => void;
   onViewPublicProfile?: (username: string) => void;
   onProfileUpdated?: () => void;
@@ -33,7 +34,7 @@ export default function ProfileEditorView({
   onViewPublicProfile,
   onProfileUpdated,
 }: ProfileEditorViewProps) {
-  const [activeTab, setActiveTab] = useState<'basics' | 'roles' | 'security'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'basics' | 'roles' | 'work' | 'security'>(initialTab);
 
   // Security tab states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -156,6 +157,13 @@ export default function ProfileEditorView({
         </button>
         <button
           type="button"
+          className={`editor-tab-btn ${activeTab === 'work' ? 'active' : ''}`}
+          onClick={() => setActiveTab('work')}
+        >
+          <span>📁</span> Work &amp; Portfolio
+        </button>
+        <button
+          type="button"
           className={`editor-tab-btn ${activeTab === 'security' ? 'active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
@@ -180,6 +188,18 @@ export default function ProfileEditorView({
         {activeTab === 'roles' && (
           <div className="editor-tab-pane">
             <RolesManager apiUrl={apiUrl} />
+          </div>
+        )}
+
+        {activeTab === 'work' && (
+          <div className="editor-tab-pane">
+            <WorkManager
+              apiUrl={apiUrl}
+              user={user}
+              onItemsChanged={() => {
+                if (onProfileUpdated) onProfileUpdated();
+              }}
+            />
           </div>
         )}
 

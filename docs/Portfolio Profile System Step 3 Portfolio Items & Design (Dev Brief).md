@@ -291,7 +291,7 @@ Build in ten small releases, one at a time. Finish, test and commit each before 
 - [x] 5\. Feature, hide, reorder and move between roles, with the 5-featured limit
 - [x] 6\. Link preview: safe fetching, YouTube shortcut, title, description and cover suggestions, failure message
 - [x] 7\. Cover upload and storing of found covers, with resizing
-- [ ] 8\. Add and edit work screens with the live card preview, and the Work list screen
+- [x] 8\. Add and edit work screens with the live card preview, and the Work list screen
 - [ ] 9\. Public page: featured row, role filter chips with `?role=`, card grid, Show more, owner empty state
 - [ ] 10\. Design polish pass (spacing, hover, focus, phone layout, dark mode check), accessibility check, tests, privacy and ownership checks
 

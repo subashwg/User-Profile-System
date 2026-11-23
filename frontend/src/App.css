@@ -995,6 +995,18 @@
   .editor-footer-bar .btn {
     width: 100%;
   }
+
+  .work-form-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .work-form-desktop-preview {
+    display: none !important;
+  }
+
+  .work-form-mobile-preview-toggle {
+    display: block !important;
+  }
 }
 
 @media (max-width: 480px) {

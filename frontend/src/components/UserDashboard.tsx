@@ -19,6 +19,7 @@ interface UserDashboardProps {
   user: User;
   apiUrl: string;
   initialMode?: 'view' | 'edit';
+  initialTab?: 'basics' | 'roles' | 'work' | 'security';
   onLogout: () => void;
   onRefresh: () => void;
   onViewPublicProfile?: (username: string) => void;
@@ -28,11 +29,13 @@ export default function UserDashboard({
   user,
   apiUrl,
   initialMode = 'view',
+  initialTab = 'basics',
   onLogout,
   onRefresh,
   onViewPublicProfile,
 }: UserDashboardProps) {
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
+  const [editorTab, setEditorTab] = useState<'basics' | 'roles' | 'work' | 'security'>(initialTab);
   const [connectedMethods, setConnectedMethods] = useState<
     Array<{ id: string; type: string; created_at: string }>
   >(user.login_methods || []);
@@ -40,6 +43,12 @@ export default function UserDashboard({
   useEffect(() => {
     setMode(initialMode);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (initialTab) {
+      setEditorTab(initialTab);
+    }
+  }, [initialTab]);
 
   const fetchLoginMethods = async () => {
     try {
@@ -66,7 +75,10 @@ export default function UserDashboard({
           user={user}
           apiUrl={apiUrl}
           connectedMethods={connectedMethods}
-          onEditProfile={() => setMode('edit')}
+          onEditProfile={(tab) => {
+            if (tab) setEditorTab(tab);
+            setMode('edit');
+          }}
           onViewPublicProfile={onViewPublicProfile}
           onLogout={onLogout}
           onRefresh={onRefresh}
@@ -76,6 +88,7 @@ export default function UserDashboard({
           user={user}
           apiUrl={apiUrl}
           connectedMethods={connectedMethods}
+          initialTab={editorTab}
           onBackToOverview={() => setMode('view')}
           onViewPublicProfile={onViewPublicProfile}
           onProfileUpdated={onRefresh}
