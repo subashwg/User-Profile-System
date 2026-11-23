@@ -292,7 +292,7 @@ Build in ten small releases, one at a time. Finish, test and commit each before 
 - [x] 6\. Link preview: safe fetching, YouTube shortcut, title, description and cover suggestions, failure message
 - [x] 7\. Cover upload and storing of found covers, with resizing
 - [x] 8\. Add and edit work screens with the live card preview, and the Work list screen
-- [ ] 9\. Public page: featured row, role filter chips with `?role=`, card grid, Show more, owner empty state
+- [x] 9\. Public page: featured row, role filter chips with `?role=`, card grid, Show more, owner empty state
 - [ ] 10\. Design polish pass (spacing, hover, focus, phone layout, dark mode check), accessibility check, tests, privacy and ownership checks
 
 For each release, write tests for the happy path and the main failure cases: someone else's item or role, a 51st item, a sixth featured item, a duplicate link, a private-address link (such as `http://127.0.0.1`), a slow link, a fake image file, a draft profile opened by a stranger.

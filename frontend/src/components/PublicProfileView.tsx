@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Avatar from './Avatar.js';
+import PortfolioCard from './portfolio/PortfolioCard.js';
+import PortfolioCardSkeleton from './portfolio/PortfolioCardSkeleton.js';
+import Button from './ui/Button.js';
+import Chip from './ui/Chip.js';
+import EmptyStateCard from './ui/EmptyStateCard.js';
+import { type PortfolioKind } from './ui/Badge.js';
 
 interface Skill {
   id: string;
@@ -14,6 +20,25 @@ interface Role {
   position: number;
   is_primary: boolean;
   skills: Skill[];
+  item_count?: number;
+}
+
+export interface PublicPortfolioItem {
+  id: string;
+  kind: PortfolioKind;
+  title: string;
+  description?: string | null;
+  url: string;
+  cover_url?: string | null;
+  cover_source: 'none' | 'link' | 'upload';
+  source_site?: string | null;
+  published_on?: string | null;
+  is_featured: boolean;
+  role_id: string;
+  role?: {
+    id: string;
+    title: string;
+  };
 }
 
 interface PublicProfile {
@@ -27,6 +52,7 @@ interface PublicProfile {
   published_at?: string | null;
   is_owner: boolean;
   roles: Role[];
+  featured_items?: PublicPortfolioItem[];
 }
 
 interface PublicProfileViewProps {
@@ -34,6 +60,10 @@ interface PublicProfileViewProps {
   apiUrl: string;
   onNavigateHome?: () => void;
   onEditProfile?: () => void;
+}
+
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
 export default function PublicProfileView({
@@ -53,6 +83,19 @@ export default function PublicProfileView({
     message: string;
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Role filter slug from URL (?role=slug)
+  const getInitialRoleSlug = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('role') || 'all';
+  };
+
+  const [selectedRoleSlug, setSelectedRoleSlug] = useState<string>(getInitialRoleSlug());
+  const [items, setItems] = useState<PublicPortfolioItem[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemsTotal, setItemsTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -128,6 +171,88 @@ export default function PublicProfileView({
       }
     };
   }, [profile]);
+
+  // Fetch items for role filter
+  const fetchItems = useCallback(
+    async (roleSlug: string, offset = 0, isAppend = false) => {
+      if (!profile) return;
+
+      if (isAppend) {
+        setLoadingMore(true);
+      } else {
+        setItemsLoading(true);
+      }
+
+      try {
+        let roleParam = '';
+        if (roleSlug !== 'all') {
+          const matchedRole = profile.roles.find(
+            (r) => slugify(r.title) === roleSlug || r.id === roleSlug,
+          );
+          if (matchedRole) {
+            roleParam = `&role=${encodeURIComponent(matchedRole.id)}`;
+          } else {
+            setItems([]);
+            setItemsTotal(0);
+            setHasMore(false);
+            return;
+          }
+        }
+
+        const res = await fetch(
+          `${apiUrl}/public/${encodeURIComponent(username)}/items?limit=12&offset=${offset}${roleParam}`,
+          { credentials: 'include' },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          setItems((prev) => (isAppend ? [...prev, ...data.items] : data.items));
+          setItemsTotal(data.total);
+          setHasMore(data.has_more);
+        }
+      } catch (err) {
+        console.error('Failed to load portfolio items', err);
+      } finally {
+        setItemsLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [apiUrl, username, profile],
+  );
+
+  // Fetch items when profile is loaded or role filter changes
+  useEffect(() => {
+    if (profile) {
+      fetchItems(selectedRoleSlug, 0, false);
+    }
+  }, [profile, selectedRoleSlug, fetchItems]);
+
+  // Sync with browser history popstate
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setSelectedRoleSlug(params.get('role') || 'all');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const handleSelectRole = (slug: string) => {
+    setSelectedRoleSlug(slug);
+    const newUrl = new URL(window.location.href);
+    if (slug === 'all') {
+      newUrl.searchParams.delete('role');
+    } else {
+      newUrl.searchParams.set('role', slug);
+    }
+    window.history.pushState({}, '', newUrl.toString());
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchItems(selectedRoleSlug, items.length, true);
+    }
+  };
 
   // Publish profile from owner preview banner
   const handlePublish = async () => {
@@ -241,7 +366,15 @@ export default function PublicProfileView({
   const primaryRole = profile.roles.find((r) => r.is_primary);
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px 60px', width: '100%', boxSizing: 'border-box' }}>
+    <div
+      style={{
+        maxWidth: '1280px',
+        margin: '0 auto',
+        padding: '0 16px 60px',
+        width: '100%',
+        boxSizing: 'border-box',
+      }}
+    >
       {/* Top Navigation Bar */}
       <div
         style={{
@@ -387,7 +520,7 @@ export default function PublicProfileView({
         </div>
       )}
 
-      {/* Main Profile Header Card */}
+      {/* 1. Main Profile Header Card */}
       <div
         className="profile-details-card"
         style={{
@@ -528,26 +661,26 @@ export default function PublicProfileView({
         </div>
       </div>
 
-      {/* Roles & Skills Section */}
-      <div style={{ marginBottom: '28px' }}>
+      {/* 2. Roles & Skills Section (Compact) */}
+      <section style={{ marginBottom: '32px' }}>
         <h2
+          className="type-heading"
           style={{
-            fontSize: '1.3rem',
-            color: 'var(--text-h)',
-            marginBottom: '16px',
+            fontSize: '1.2rem',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}
         >
           <span>💼</span>
-          <span>Roles &amp; Skills</span>
+          <span>Roles &amp; Expertise</span>
         </h2>
 
         {profile.roles.length === 0 ? (
           <div
             className="status-card"
-            style={{ textAlign: 'center', padding: '30px', color: 'var(--text)' }}
+            style={{ textAlign: 'center', padding: '24px', color: 'var(--text)' }}
           >
             {profile.is_owner
               ? 'No roles added yet. Go to your dashboard to add your roles and skills.'
@@ -558,21 +691,21 @@ export default function PublicProfileView({
             style={{
               display: 'grid',
               gridTemplateColumns:
-                profile.roles.length > 1 ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr',
-              gap: '16px',
+                profile.roles.length > 1 ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
+              gap: '12px',
             }}
           >
             {profile.roles.map((role) => (
               <div
                 key={role.id}
                 style={{
-                  background: 'var(--card-bg, #1e1e24)',
+                  background: 'var(--color-surface)',
                   border: role.is_primary
-                    ? '1.5px solid var(--accent)'
-                    : '1px solid var(--border)',
-                  borderRadius: '12px',
-                  padding: '20px 24px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                    ? '1.5px solid var(--color-accent)'
+                    : '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-card)',
+                  padding: '14px 18px',
+                  boxShadow: 'var(--shadow-sm)',
                   position: 'relative',
                 }}
               >
@@ -580,41 +713,40 @@ export default function PublicProfileView({
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'baseline',
-                    marginBottom: '8px',
-                    flexWrap: 'wrap',
-                    gap: '8px',
+                    alignItems: 'center',
+                    marginBottom: role.description ? '6px' : '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h3
+                  <h3 className="type-card-title" style={{ margin: 0, fontSize: '15px' }}>
+                    {role.title}
+                  </h3>
+                  {role.is_primary && (
+                    <span
                       style={{
-                        margin: 0,
-                        fontSize: '1.15rem',
+                        fontSize: '11px',
                         fontWeight: 600,
-                        color: 'var(--text-h)',
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-pill)',
+                        backgroundColor: 'var(--color-accent-soft)',
+                        color: 'var(--color-accent-strong)',
                       }}
                     >
-                      {role.title}
-                    </h3>
-                    {role.is_primary && (
-                      <span
-                        className="badge badge-accent"
-                        style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}
-                      >
-                        Primary Role
-                      </span>
-                    )}
-                  </div>
+                      Primary
+                    </span>
+                  )}
                 </div>
 
                 {role.description && (
                   <p
+                    className="type-body-muted"
                     style={{
-                      margin: '4px 0 12px 0',
-                      fontSize: '0.9rem',
-                      lineHeight: 1.5,
-                      color: 'var(--text)',
+                      margin: '0 0 10px 0',
+                      fontSize: '13px',
+                      lineHeight: 1.4,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
                     }}
                   >
                     {role.description}
@@ -627,20 +759,19 @@ export default function PublicProfileView({
                     style={{
                       display: 'flex',
                       flexWrap: 'wrap',
-                      gap: '8px',
-                      marginTop: role.description ? '12px' : '4px',
+                      gap: '6px',
                     }}
                   >
                     {role.skills.map((skill) => (
                       <span
                         key={skill.id}
                         style={{
-                          backgroundColor: 'rgba(170, 59, 255, 0.1)',
-                          color: 'var(--accent)',
-                          border: '1px solid rgba(170, 59, 255, 0.35)',
-                          borderRadius: '16px',
-                          padding: '4px 12px',
-                          fontSize: '0.82rem',
+                          backgroundColor: 'var(--color-background)',
+                          color: 'var(--color-text)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-pill)',
+                          padding: '2px 10px',
+                          fontSize: '12px',
                           fontWeight: 500,
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -655,36 +786,181 @@ export default function PublicProfileView({
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Portfolio Projects Section (Placeholder per Dev Brief) */}
-      <div
-        style={{
-          background: 'var(--card-bg, #1e1e24)',
-          border: '1px dashed var(--border)',
-          borderRadius: '12px',
-          padding: '28px 24px',
-          textAlign: 'center',
-          marginTop: '20px',
-        }}
-      >
-        <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎨</div>
-        <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: 'var(--text-h)' }}>
-          Portfolio Projects
-        </h3>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.88rem',
-            color: 'var(--text)',
-            maxWidth: '460px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }}
-        >
-          Portfolio coming soon. Featured case studies, work samples, and projects will appear here.
-        </p>
-      </div>
+      {/* 3. Featured Row */}
+      {profile.featured_items && profile.featured_items.length > 0 && (
+        <section style={{ marginBottom: '36px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.2rem' }}>⭐</span>
+            <h2 className="type-heading" style={{ margin: 0, fontSize: '1.35rem' }}>
+              Featured Work
+            </h2>
+            <span className="type-caption" style={{ color: 'var(--color-text-muted)' }}>
+              ({profile.featured_items.length})
+            </span>
+          </div>
+
+          <div className="public-featured-row">
+            {profile.featured_items.map((item) => (
+              <div key={item.id} className="public-featured-item">
+                <PortfolioCard
+                  kind={item.kind}
+                  title={item.title}
+                  description={item.description}
+                  url={item.url}
+                  cover_url={item.cover_url}
+                  source_site={item.source_site}
+                  published_on={item.published_on}
+                  roleTitle={item.role?.title}
+                  is_featured={true}
+                  interactive={true}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4 & 5. Work Section with Filter Chips & Grid */}
+      {(() => {
+        const featuredIds = new Set(profile.featured_items?.map((f) => f.id) || []);
+        // Items to display in the grid (excluding those shown in the featured row)
+        const gridItems = items.filter((i) => !featuredIds.has(i.id));
+
+        // Roles that have at least one visible item
+        const rolesWithItems = profile.roles.filter((r) => (r.item_count || 0) > 0);
+        const totalVisibleItems = profile.roles.reduce(
+          (acc, r) => acc + (r.item_count || 0),
+          0,
+        );
+
+        // If no visible items anywhere:
+        if (totalVisibleItems === 0) {
+          // Visitor: completely hidden
+          if (!profile.is_owner) {
+            return null;
+          }
+          // Owner: dashed empty state
+          return (
+            <section style={{ marginBottom: '40px' }}>
+              <EmptyStateCard
+                icon="🎨"
+                title="Add your first work item"
+                description="Showcase your best projects, articles, videos, or products directly on your public portfolio."
+                actionLabel="+ Add Work Item"
+                onAction={onEditProfile}
+              />
+            </section>
+          );
+        }
+
+        return (
+          <section style={{ marginBottom: '40px' }}>
+            {/* Work Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '1.2rem' }}>🎨</span>
+              <h2 className="type-heading" style={{ margin: 0, fontSize: '1.35rem' }}>
+                Work &amp; Portfolio
+              </h2>
+              {itemsTotal > 0 && (
+                <span className="type-caption" style={{ color: 'var(--color-text-muted)' }}>
+                  ({itemsTotal})
+                </span>
+              )}
+            </div>
+
+            {/* Filter Chips */}
+            {rolesWithItems.length > 0 && (
+              <div className="public-chips-row" role="region" aria-label="Filter work items by role">
+                <Chip
+                  label="All"
+                  count={totalVisibleItems}
+                  selected={selectedRoleSlug === 'all'}
+                  onClick={() => handleSelectRole('all')}
+                  aria-pressed={selectedRoleSlug === 'all'}
+                />
+                {rolesWithItems.map((r) => {
+                  const slug = slugify(r.title);
+                  const isSelected = selectedRoleSlug === slug;
+                  return (
+                    <Chip
+                      key={r.id}
+                      label={r.title}
+                      count={r.item_count}
+                      selected={isSelected}
+                      onClick={() => handleSelectRole(slug)}
+                      aria-pressed={isSelected}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Items Loading Skeletons */}
+            {itemsLoading ? (
+              <div className="public-work-grid">
+                <PortfolioCardSkeleton />
+                <PortfolioCardSkeleton />
+                <PortfolioCardSkeleton />
+              </div>
+            ) : gridItems.length === 0 ? (
+              <div
+                style={{
+                  padding: '32px 16px',
+                  textAlign: 'center',
+                  color: 'var(--color-text-muted)',
+                  border: '1px dashed var(--color-border)',
+                  borderRadius: 'var(--radius-card)',
+                }}
+              >
+                <p className="type-body" style={{ margin: 0 }}>
+                  {profile.featured_items && profile.featured_items.length > 0
+                    ? 'All items for this selection are featured in the row above.'
+                    : 'No work items found under this role.'}
+                </p>
+              </div>
+            ) : (
+              <div className="public-work-grid">
+                {gridItems.map((item) => (
+                  <PortfolioCard
+                    key={item.id}
+                    kind={item.kind}
+                    title={item.title}
+                    description={item.description}
+                    url={item.url}
+                    cover_url={item.cover_url}
+                    source_site={item.source_site}
+                    published_on={item.published_on}
+                    roleTitle={item.role?.title}
+                    is_featured={false}
+                    interactive={true}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Show More Pagination Button */}
+            {hasMore && (
+              <div style={{ textAlign: 'center', marginTop: '32px' }}>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Loading more...' : 'Show more work'}
+                </Button>
+              </div>
+            )}
+          </section>
+        );
+      })()}
+
+      {/* 6. Quiet Footer */}
+      <footer className="public-footer">
+        <p style={{ margin: 0 }}>Made with UserProfile</p>
+      </footer>
     </div>
   );
 }

@@ -328,15 +328,40 @@ export class ProfileService {
       throw new NotFoundException('Profile not found');
     }
 
-    const roles = await this.prisma.role.findMany({
-      where: { user_id: user.id },
-      orderBy: { position: 'asc' },
-      include: {
-        skills: {
-          orderBy: { position: 'asc' },
+    const [roles, featuredItems] = await Promise.all([
+      this.prisma.role.findMany({
+        where: { user_id: user.id },
+        orderBy: { position: 'asc' },
+        include: {
+          skills: {
+            orderBy: { position: 'asc' },
+          },
+          _count: {
+            select: {
+              items: {
+                where: { is_hidden: false },
+              },
+            },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.portfolioItem.findMany({
+        where: {
+          user_id: user.id,
+          is_featured: true,
+          is_hidden: false,
+        },
+        orderBy: [{ role: { position: 'asc' } }, { position: 'asc' }],
+        include: {
+          role: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      }),
+    ]);
 
     return {
       name: user.name,
@@ -359,7 +384,131 @@ export class ProfileService {
           name: s.name,
           position: s.position,
         })),
+        item_count: r._count?.items ?? 0,
       })),
+      featured_items: featuredItems.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        description: item.description,
+        url: item.url,
+        cover_url: item.cover_url,
+        cover_source: item.cover_source,
+        source_site: item.source_site,
+        published_on: item.published_on ? item.published_on.toISOString() : null,
+        is_featured: item.is_featured,
+        role_id: item.role_id,
+        role: {
+          id: item.role.id,
+          title: item.role.title,
+        },
+      })),
+    };
+  }
+
+  async getPublicItems(
+    username: string,
+    query: { role?: string; limit?: number; offset?: number },
+    callerUserId?: string | null,
+  ) {
+    const cleanUsername = username.trim().toLowerCase();
+
+    if (RESERVED_USERNAMES.has(cleanUsername)) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        username: { equals: cleanUsername, mode: 'insensitive' },
+      },
+      select: {
+        id: true,
+        profile: true,
+      },
+    });
+
+    if (!user || !user.profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const isOwner = callerUserId ? callerUserId === user.id : false;
+
+    if (user.profile.status === 'draft' && !isOwner) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    // Role filter: match role id or role title
+    let roleFilter: string | undefined = undefined;
+    if (query.role) {
+      const trimmedRole = query.role.trim();
+      const matchingRole = await this.prisma.role.findFirst({
+        where: {
+          user_id: user.id,
+          OR: [
+            { id: trimmedRole },
+            { title: { equals: trimmedRole, mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      if (matchingRole) {
+        roleFilter = matchingRole.id;
+      } else {
+        return {
+          items: [],
+          total: 0,
+          has_more: false,
+        };
+      }
+    }
+
+    const limit = Math.min(Math.max(Number(query.limit) || 12, 1), 50);
+    const offset = Math.max(Number(query.offset) || 0, 0);
+
+    const whereClause: any = {
+      user_id: user.id,
+      is_hidden: false,
+      ...(roleFilter ? { role_id: roleFilter } : {}),
+    };
+
+    const [total, items] = await Promise.all([
+      this.prisma.portfolioItem.count({ where: whereClause }),
+      this.prisma.portfolioItem.findMany({
+        where: whereClause,
+        orderBy: [{ role: { position: 'asc' } }, { position: 'asc' }],
+        skip: offset,
+        take: limit,
+        include: {
+          role: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        description: item.description,
+        url: item.url,
+        cover_url: item.cover_url,
+        cover_source: item.cover_source,
+        source_site: item.source_site,
+        published_on: item.published_on ? item.published_on.toISOString() : null,
+        is_featured: item.is_featured,
+        role_id: item.role_id,
+        role: {
+          id: item.role.id,
+          title: item.role.title,
+        },
+      })),
+      total,
+      has_more: offset + items.length < total,
     };
   }
 }
