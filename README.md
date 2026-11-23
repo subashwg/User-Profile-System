@@ -53,6 +53,57 @@ Step 2 delivers the portfolio profile creator and public profile system:
 
 ---
 
+## Step 3: Portfolio Items & Visual Design System
+
+Step 3 introduces the portfolio item management and showcase system:
+- **6 Kind Presets**: Each item belongs to one of six semantic presets: `video`, `article`, `course`, `project`, `product`, or `other`, styled with dedicated color badges, icons, and contextual call-to-actions ("Watch →", "Read →", "Learn →", "View project →", "View product →", "Visit →").
+- **Link Preview Engine**:
+  - Automatically fetches metadata (title, description, cover image, source site, kind) from pasted links.
+  - **YouTube Shortcut**: Extracts video ID from YouTube URLs and directly queries the YouTube oEmbed API for fast, reliable titles and high-resolution thumbnail images without full page scraping.
+  - **SSRF Guard**: Strict server-side validation rejecting private, loopback, and carrier-grade NAT addresses (e.g. `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `100.64.0.0/10`, and IPv6 equivalents) across initial hostnames and after every redirect (up to 3 redirects max). Enforces 5-second timeout and 1 MB read limit.
+  - **Rate Limiting**: 20 preview requests per minute per user.
+  - **Fallback Safety**: If preview lookup fails, users are guided by an inline notification while all form fields remain editable for manual input.
+- **Cover Image Processing & Storage**:
+  - **Storage Location**: Stored locally on disk at `backend/uploads/covers/` (served at `/uploads/covers/:filename`) via `StorageService`.
+  - **Resizing**: Uploaded covers (JPEG, PNG, WebP up to 5 MB) are validated via magic bytes and processed into two 16:9 WebP variants: full resolution (1280×720) and grid thumbnail (640×360).
+  - **Remote Cover Storing**: Preview covers found on external websites are safely downloaded, SSRF-validated, and stored locally so visitor IPs and privacy are never leaked to external sites.
+  - **Tint Fallbacks**: Items without a cover image use the kind's designated soft tint background with centered icon.
+- **Organization & Limits**:
+  - **Strict Server-Side Limits**: Enforces a maximum of 50 portfolio items per user and a maximum of 5 featured items per user.
+  - **Duplicate Detection**: Prevents duplicate URLs per user, stripping marketing parameters (`utm_*`, `fbclid`, `gclid`).
+  - **Reordering**: Drag-and-drop and accessible up/down buttons within each role (`PUT /roles/:roleId/items/order`).
+  - **Cascade Delete**: Deleting a role cleanly deletes its associated portfolio items and their cover images from disk.
+- **Editor Screens**:
+  - Dedicated "Work & Portfolio" tab in the profile editor.
+  - Add/Edit form with live desktop sticky preview card and collapsible mobile preview.
+  - Work list grouped by role with 96px 16:9 thumbnails, status badges ("Featured", "Hidden"), drag handles, and 44px touch-target action buttons.
+- **Public Profile (`/@<username>` or `/<username>`)**:
+  - **Featured Row**: Top horizontal snap-scroll row with ~360px cards (85% viewport width on mobile) displaying up to 5 featured items across all roles.
+  - **Role Filter Chips**: Interactive button chips ("All" + roles with visible items) synced with the URL query `?role=<role-slug>` supporting direct links.
+  - **Responsive Grid**: 3 columns on desktop (≥1024px), 2 columns on tablet (≥640px), 1 column on mobile.
+  - **Show More Pagination**: Displays first 12 items with a "Show more" button loading subsequent items.
+  - **Empty States**: Public portfolio area is completely hidden for visitors when empty; owners see a dashed "Add your first work item" card.
+  - Quiet footer line: "Made with UserProfile".
+
+### Step 3 API Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+| --- | --- | --- | --- |
+| `POST` | `/items/preview` | Safe link preview fetcher (title, description, cover, kind) with SSRF guard | Yes |
+| `GET` | `/items` | List user's portfolio items grouped by role (includes hidden items) | Yes |
+| `POST` | `/items` | Create a new portfolio item (validates 50-item limit and duplicate URLs) | Yes |
+| `GET` | `/items/:id` | Return details of a specific portfolio item | Yes |
+| `PATCH` | `/items/:id` | Update item details, move to role, toggle featured (max 5), toggle hidden | Yes |
+| `DELETE` | `/items/:id` | Delete an item and its associated cover image file | Yes |
+| `PUT` | `/roles/:roleId/items/order` | Reorder all items within a role | Yes |
+| `POST` | `/items/:id/cover` | Upload cover image (cropped to 16:9, generates 1280x720 & 640x360 WebP) | Yes |
+| `DELETE` | `/items/:id/cover` | Remove cover image and revert to kind tint fallback | Yes |
+| `GET` | `/public/:username` | Returns public profile with `featured_items` array | No (Session checked) |
+| `GET` | `/public/:username/items` | Returns paginated visible items with `role`, `limit`, and `offset` query options | No (Session checked) |
+| `GET` | `/uploads/covers/:filename` | Serves cover images with 1-year immutable cache headers | No |
+
+---
+
 ### Tech Stack
 - **Backend:** NestJS (TypeScript, Node.js 24)
 - **Database & ORM:** PostgreSQL + Prisma ORM

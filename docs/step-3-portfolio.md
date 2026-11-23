@@ -293,7 +293,7 @@ Build in ten small releases, one at a time. Finish, test and commit each before 
 - [x] 7\. Cover upload and storing of found covers, with resizing
 - [x] 8\. Add and edit work screens with the live card preview, and the Work list screen
 - [x] 9\. Public page: featured row, role filter chips with `?role=`, card grid, Show more, owner empty state
-- [ ] 10\. Design polish pass (spacing, hover, focus, phone layout, dark mode check), accessibility check, tests, privacy and ownership checks
+- [x] 10\. Design polish pass (spacing, hover, focus, phone layout, dark mode check), accessibility check, tests, privacy and ownership checks
 
 For each release, write tests for the happy path and the main failure cases: someone else's item or role, a 51st item, a sixth featured item, a duplicate link, a private-address link (such as `http://127.0.0.1`), a slow link, a fake image file, a draft profile opened by a stranger.
 
@@ -301,20 +301,20 @@ For each release, write tests for the happy path and the main failure cases: som
 
 Step 3 is finished when every item below is true and tested.
 
-- [ ] A user can add a work item by pasting a link and get a suggested title, description, cover and kind
-- [ ] When the link lookup fails, the user can still fill in and save the item by hand
-- [ ] A user can upload, replace and remove a cover; fake or oversized files are rejected
-- [ ] A user can edit, move to another role, feature, hide, reorder and delete items
-- [ ] The limits hold on the server: 50 items, 5 featured, no duplicate links
-- [ ] Links to private or internal addresses are refused by the preview, including through redirects
-- [ ] The public page shows the Featured row, the role chips, the grid and Show more, as designed
-- [ ] Visitors never see hidden items, drafts or any email or internal field
-- [ ] A role with no visible items shows no chip; a profile with no items shows no Work area to visitors
-- [ ] Cards, forms and screens match the Design direction on phone, tablet and desktop
-- [ ] Every state is built: loading, empty, failed lookup, broken cover, hidden, focus
-- [ ] Keyboard-only use works for adding, reordering and filtering; text contrast is at least 4.5:1
-- [ ] One user cannot read or change another user's items
-- [ ] The README is updated with how Step 3 works and where covers are stored
+- [x] A user can add a work item by pasting a link and get a suggested title, description, cover and kind
+- [x] When the link lookup fails, the user can still fill in and save the item by hand
+- [x] A user can upload, replace and remove a cover; fake or oversized files are rejected
+- [x] A user can edit, move to another role, feature, hide, reorder and delete items
+- [x] The limits hold on the server: 50 items, 5 featured, no duplicate links
+- [x] Links to private or internal addresses are refused by the preview, including through redirects
+- [x] The public page shows the Featured row, the role chips, the grid and Show more, as designed
+- [x] Visitors never see hidden items, drafts or any email or internal field
+- [x] A role with no visible items shows no chip; a profile with no items shows no Work area to visitors
+- [x] Cards, forms and screens match the Design direction on phone, tablet and desktop
+- [x] Every state is built: loading, empty, failed lookup, broken cover, hidden, focus
+- [x] Keyboard-only use works for adding, reordering and filtering; text contrast is at least 4.5:1
+- [x] One user cannot read or change another user's items
+- [x] The README is updated with how Step 3 works and where covers are stored
 
 ## Starter prompt for Antigravity
 
